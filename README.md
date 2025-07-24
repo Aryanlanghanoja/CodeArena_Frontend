@@ -1,1 +1,1 @@
-# CodeArena_Frontend
+# Code Arena - A Competitive Programming Platform
