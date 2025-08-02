@@ -1,68 +1,178 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* Professional Terminal Design System - Light Mode (for compatibility) */
+    --background: 0 0% 94%; /* #F0F0F0 */
+    --foreground: 264 88% 7%; /* #0D0221 */
+
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 264 88% 7%; /* #0D0221 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 264 88% 7%;
+
+    /* Primary: Electric Blue */
+    --primary: 217 91% 60%; /* #3B82F6 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 45%; /* #2563EB */
+
+    --secondary: 175 100% 48%; /* #00F5D4 */
+    --secondary-foreground: 264 88% 7%;
+
+    --muted: 240 9% 84%; /* #D1D1D1 */
+    --muted-foreground: 240 14% 44%; /* #6E6E7E */
+
+    --accent: 217 91% 60%; /* #3B82F6 */
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic Colors */
+    --success: 150 100% 50%; /* #00FF7F */
+    --error: 4 100% 59%; /* #FF3B30 */
+    --warning: 39 100% 50%; /* #FFAB00 */
+    --info: 199 95% 68%; /* #5AC8FA */
+
+    --destructive: 4 100% 59%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 14% 44%; /* #6E6E7E */
+    --input: 240 14% 44%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 94%;
+    --sidebar-foreground: 264 88% 7%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 9% 84%;
+    --sidebar-accent-foreground: 264 88% 7%;
+    --sidebar-border: 240 14% 44%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Custom CodeArena Variables */
+    --code-bg: 0 0% 94%; /* #F0F0F0 */
+    --difficulty-easy: 150 100% 50%; /* #00FF7F */
+    --difficulty-medium: 39 100% 50%; /* #FFAB00 */
+    --difficulty-hard: 4 100% 59%; /* #FF3B30 */
   }
-  a:hover {
-    color: #747bff;
+
+  .dark {
+    /* Professional Terminal Design System - Dark Mode (main theme) */
+    --background: 264 88% 7%; /* #0D0221 */
+    --foreground: 0 0% 94%; /* #F0F0F0 */
+
+    --card: 276 68% 11%; /* #14082E */
+    --card-foreground: 0 0% 94%;
+
+    --popover: 276 68% 11%;
+    --popover-foreground: 0 0% 94%;
+
+    /* Primary: Electric Blue */
+    --primary: 217 91% 60%; /* #3B82F6 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 70%; /* #60A5FA */
+
+    --secondary: 175 100% 48%; /* #00F5D4 */
+    --secondary-foreground: 264 88% 7%;
+
+    --muted: 240 16% 29%; /* #3A3A4A */
+    --muted-foreground: 240 9% 66%; /* #A0A0B0 */
+
+    --accent: 175 100% 48%; /* #00F5D4 */
+    --accent-foreground: 264 88% 7%;
+
+    /* Semantic Colors */
+    --success: 150 100% 50%; /* #00FF7F */
+    --error: 4 100% 59%; /* #FF3B30 */
+    --warning: 39 100% 50%; /* #FFAB00 */
+    --info: 199 95% 68%; /* #5AC8FA */
+
+    --destructive: 4 100% 59%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 16% 29%; /* #3A3A4A */
+    --input: 240 16% 29%;
+    --ring: 217 91% 60%;
+
+    /* Sidebar Dark */
+    --sidebar-background: 264 88% 7%; /* #0D0221 */
+    --sidebar-foreground: 0 0% 94%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 276 68% 11%; /* #14082E */
+    --sidebar-accent-foreground: 0 0% 94%;
+    --sidebar-border: 240 16% 29%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Custom CodeArena Variables Dark */
+    --code-bg: 276 68% 11%; /* #14082E */
+    --difficulty-easy: 150 100% 50%; /* #00FF7F */
+    --difficulty-medium: 39 100% 50%; /* #FFAB00 */
+    --difficulty-hard: 4 100% 59%; /* #FF3B30 */
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom Utilities */
+  .text-difficulty-easy {
+    color: hsl(var(--difficulty-easy));
+  }
+  
+  .text-difficulty-medium {
+    color: hsl(var(--difficulty-medium));
+  }
+  
+  .text-difficulty-hard {
+    color: hsl(var(--difficulty-hard));
+  }
+
+  .bg-code {
+    background-color: hsl(var(--code-bg));
+  }
+
+  /* Scrollbar Styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Chart custom styles */
+  .recharts-tooltip-content {
+    background: hsl(var(--card)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   }
 }
