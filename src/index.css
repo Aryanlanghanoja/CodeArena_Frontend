@@ -9,115 +9,117 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Professional Terminal Design System - Light Mode (for compatibility) */
-    --background: 0 0% 94%; /* #F0F0F0 */
-    --foreground: 264 88% 7%; /* #0D0221 */
+    /* Clarity & Focus LMS - Light Mode */
+    --background: 220 14% 97%; /* #F8F9FA */
+    --foreground: 210 11% 15%; /* #212529 */
 
     --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 264 88% 7%; /* #0D0221 */
+    --card-foreground: 210 11% 15%; /* #212529 */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 264 88% 7%;
+    --popover-foreground: 210 11% 15%;
 
-    /* Primary: Electric Blue */
-    --primary: 217 91% 60%; /* #3B82F6 */
+    /* Primary: Professional Blue */
+    --primary: 226 76% 55%; /* #2A64F2 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 45%; /* #2563EB */
+    --primary-hover: 226 76% 45%; /* #1E48A9 */
 
-    --secondary: 175 100% 48%; /* #00F5D4 */
-    --secondary-foreground: 264 88% 7%;
+    /* Secondary: Professional Teal */
+    --secondary: 162 100% 39%; /* #00C49A */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 9% 84%; /* #D1D1D1 */
-    --muted-foreground: 240 14% 44%; /* #6E6E7E */
+    --muted: 210 17% 93%; /* #E9ECEF */
+    --muted-foreground: 215 15% 47%; /* #6C757D */
 
-    --accent: 217 91% 60%; /* #3B82F6 */
+    --accent: 162 100% 39%; /* #00C49A */
     --accent-foreground: 0 0% 100%;
 
     /* Semantic Colors */
-    --success: 150 100% 50%; /* #00FF7F */
-    --error: 4 100% 59%; /* #FF3B30 */
-    --warning: 39 100% 50%; /* #FFAB00 */
-    --info: 199 95% 68%; /* #5AC8FA */
+    --success: 134 61% 41%; /* #28A745 */
+    --error: 354 70% 54%; /* #DC3545 */
+    --warning: 45 100% 51%; /* #FFC107 */
+    --info: 188 78% 41%; /* #17A2B8 */
 
-    --destructive: 4 100% 59%;
+    --destructive: 354 70% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 14% 44%; /* #6E6E7E */
-    --input: 240 14% 44%;
-    --ring: 217 91% 60%;
+    --border: 220 13% 91%; /* #DEE2E6 */
+    --input: 220 13% 91%;
+    --ring: 226 76% 55%;
 
     --radius: 0.5rem;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 94%;
-    --sidebar-foreground: 264 88% 7%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 11% 15%;
+    --sidebar-primary: 226 76% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 9% 84%;
-    --sidebar-accent-foreground: 264 88% 7%;
-    --sidebar-border: 240 14% 44%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 210 17% 93%;
+    --sidebar-accent-foreground: 210 11% 15%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 226 76% 55%;
 
-    /* Custom CodeArena Variables */
-    --code-bg: 0 0% 94%; /* #F0F0F0 */
-    --difficulty-easy: 150 100% 50%; /* #00FF7F */
-    --difficulty-medium: 39 100% 50%; /* #FFAB00 */
-    --difficulty-hard: 4 100% 59%; /* #FF3B30 */
+    /* Custom LMS Variables */
+    --code-bg: 220 14% 97%; /* #F8F9FA */
+    --difficulty-easy: 134 61% 41%; /* #28A745 */
+    --difficulty-medium: 45 100% 51%; /* #FFC107 */
+    --difficulty-hard: 354 70% 54%; /* #DC3545 */
   }
 
   .dark {
-    /* Professional Terminal Design System - Dark Mode (main theme) */
-    --background: 264 88% 7%; /* #0D0221 */
-    --foreground: 0 0% 94%; /* #F0F0F0 */
+    /* Clarity & Focus LMS - Dark Mode */
+    --background: 210 11% 15%; /* #212529 */
+    --foreground: 220 14% 97%; /* #F8F9FA */
 
-    --card: 276 68% 11%; /* #14082E */
-    --card-foreground: 0 0% 94%;
+    --card: 210 9% 21%; /* #343A40 */
+    --card-foreground: 220 14% 97%;
 
-    --popover: 276 68% 11%;
-    --popover-foreground: 0 0% 94%;
+    --popover: 210 9% 21%;
+    --popover-foreground: 220 14% 97%;
 
-    /* Primary: Electric Blue */
-    --primary: 217 91% 60%; /* #3B82F6 */
+    /* Primary: Professional Blue */
+    --primary: 226 76% 55%; /* #2A64F2 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 70%; /* #60A5FA */
+    --primary-hover: 226 76% 65%; /* #5D8BF7 */
 
-    --secondary: 175 100% 48%; /* #00F5D4 */
-    --secondary-foreground: 264 88% 7%;
+    /* Secondary: Professional Teal */
+    --secondary: 162 100% 39%; /* #00C49A */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 16% 29%; /* #3A3A4A */
-    --muted-foreground: 240 9% 66%; /* #A0A0B0 */
+    --muted: 215 15% 47%; /* #6C757D */
+    --muted-foreground: 210 17% 93%; /* #E9ECEF */
 
-    --accent: 175 100% 48%; /* #00F5D4 */
-    --accent-foreground: 264 88% 7%;
+    --accent: 162 100% 39%; /* #00C49A */
+    --accent-foreground: 0 0% 100%;
 
     /* Semantic Colors */
-    --success: 150 100% 50%; /* #00FF7F */
-    --error: 4 100% 59%; /* #FF3B30 */
-    --warning: 39 100% 50%; /* #FFAB00 */
-    --info: 199 95% 68%; /* #5AC8FA */
+    --success: 134 61% 41%; /* #28A745 */
+    --error: 354 70% 54%; /* #DC3545 */
+    --warning: 45 100% 51%; /* #FFC107 */
+    --info: 188 78% 41%; /* #17A2B8 */
 
-    --destructive: 4 100% 59%;
+    --destructive: 354 70% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 16% 29%; /* #3A3A4A */
-    --input: 240 16% 29%;
-    --ring: 217 91% 60%;
+    --border: 215 15% 47%; /* #6C757D */
+    --input: 215 15% 47%;
+    --ring: 226 76% 55%;
 
     /* Sidebar Dark */
-    --sidebar-background: 264 88% 7%; /* #0D0221 */
-    --sidebar-foreground: 0 0% 94%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 210 9% 21%; /* #343A40 */
+    --sidebar-foreground: 220 14% 97%;
+    --sidebar-primary: 226 76% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 276 68% 11%; /* #14082E */
-    --sidebar-accent-foreground: 0 0% 94%;
-    --sidebar-border: 240 16% 29%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 210 11% 15%; /* #212529 */
+    --sidebar-accent-foreground: 220 14% 97%;
+    --sidebar-border: 215 15% 47%;
+    --sidebar-ring: 226 76% 55%;
 
-    /* Custom CodeArena Variables Dark */
-    --code-bg: 276 68% 11%; /* #14082E */
-    --difficulty-easy: 150 100% 50%; /* #00FF7F */
-    --difficulty-medium: 39 100% 50%; /* #FFAB00 */
-    --difficulty-hard: 4 100% 59%; /* #FF3B30 */
+    /* Custom LMS Variables Dark */
+    --code-bg: 210 9% 21%; /* #343A40 */
+    --difficulty-easy: 134 61% 41%; /* #28A745 */
+    --difficulty-medium: 45 100% 51%; /* #FFC107 */
+    --difficulty-hard: 354 70% 54%; /* #DC3545 */
   }
 }
 
