@@ -172,9 +172,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
           <div>
             <h1 className="text-xl font-bold">{problem.title}</h1>
             <div className="flex items-center space-x-2 mt-1">
-              <span className={`text-sm font-medium ${getDifficultyClass(problem.difficulty)}`}>
-                {problem.difficulty}
-              </span>
+              <span className={`text-sm font-medium ${getDifficultyClass(problem.difficulty)}`}>{problem.difficulty}</span>
               <Badge variant="outline">{problem.topic}</Badge>
               <Badge variant="secondary">{problem.company}</Badge>
             </div>
@@ -242,9 +240,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Custom Test Case</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Test your solution with custom input before submitting.
-                  </p>
+                  <p className="text-muted-foreground mb-4">Test your solution with custom input before submitting.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -300,9 +296,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
                   </SelectTrigger>
                   <SelectContent>
                     {languages.map((lang) => (
-                      <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
-                      </SelectItem>
+                      <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -335,16 +329,13 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
           </div>
 
           {/* Code Editor */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
               extensions={[languages.find(l => l.value === selectedLanguage)?.extension]}
               theme={isDarkMode ? oneDark : undefined}
-              style={{
-                height: '100%',
-                fontSize: '14px',
-              }}
+              style={{ height: '32em', width: '100%', fontSize: '14px' }}
               basicSetup={{
                 lineNumbers: true,
                 foldGutter: true,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,8 +17,26 @@ import ProfilePage from './components/ProfilePage';
 import ExamPage from './components/ExamPage';
 import CoursesPage from './components/CoursesPage';
 import LearningPathsPage from './components/LearningPathsPage';
+import { mockProblems, mockContests } from './data/mockData';
+const ContestDetailsRoute = ({ onBackToContests, onProblemSelect }) => {
+  const { contestId } = useParams();
+  const contest = mockContests.find(c => String(c.id) === String(contestId));
+  if (!contest) {
+    return <div className="p-8 text-center text-muted-foreground">Contest not found.</div>;
+  }
+  return <ContestDetailsPage contest={contest} onBackToContests={onBackToContests} onProblemSelect={onProblemSelect} />;
+};
 
 const queryClient = new QueryClient();
+
+const ProblemSolvingRoute = ({ onBackToProblemList }) => {
+  const { problemId } = useParams();
+  const problem = mockProblems.find(p => String(p.id) === String(problemId));
+  if (!problem) {
+    return <div className="p-8 text-center text-muted-foreground">Problem not found.</div>;
+  }
+  return <ProblemSolvingPage problem={problem} onBackToProblemList={onBackToProblemList} />;
+};
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -64,13 +82,18 @@ const AppContent = () => {
   };
 
   // Layout logic for full screen problem-solving
-  if (location.pathname.startsWith('/problems/') || location.pathname === '/problem-solving') {
+  if (location.pathname.startsWith('/problems/')) {
     return (
-      <div className="h-screen overflow-hidden">
-        <Routes>
-          <Route path="/problems/:problemId" element={<ProblemSolvingPage onBackToProblemList={handleBackToProblemList} />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route
+          path="/problems/:problemId"
+          element={
+            <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
+              <ProblemSolvingRoute onBackToProblemList={handleBackToProblemList} />
+            </div>
+          }
+        />
+      </Routes>
     );
   }
 
@@ -80,7 +103,7 @@ const AppContent = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/problems" element={<ProblemListPage onProblemSelect={handleProblemSelect} />} />
         <Route path="/contests" element={<ContestsPage onContestSelect={handleContestSelect} />} />
-        <Route path="/contests/:contestId" element={<ContestDetailsPage onBackToContests={handleBackToContests} onProblemSelect={handleProblemSelect} />} />
+        <Route path="/contests/:contestId" element={<ContestDetailsRoute onBackToContests={handleBackToContests} onProblemSelect={handleProblemSelect} />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/exam" element={<ExamPage onBackToDashboard={handleBackToDashboard} />} />
         <Route path="/courses" element={<CoursesPage onCourseSelect={handleCourseSelect} onBackToDashboard={handleBackToDashboard} />} />
