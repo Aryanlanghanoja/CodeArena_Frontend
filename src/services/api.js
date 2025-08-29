@@ -109,6 +109,51 @@ export const authAPI = {
   },
 };
 
+// Profile API endpoints
+export const profileAPI = {
+  // Get user profile with statistics
+  getProfile: async () => {
+    const response = await api.get('/profile');
+    return response.data;
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    const response = await api.put('/profile/update', profileData);
+    return response.data;
+  },
+
+  // Change password
+  changePassword: async (passwordData) => {
+    const response = await api.post('/profile/change-password', passwordData);
+    return response.data;
+  },
+
+  // Upload profile photo
+  uploadPhoto: async (photoFile) => {
+    const formData = new FormData();
+    formData.append('photo', photoFile);
+    const response = await api.post('/profile/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete profile photo
+  deletePhoto: async () => {
+    const response = await api.delete('/profile/delete-photo');
+    return response.data;
+  },
+
+  // Get user statistics
+  getStatistics: async () => {
+    const response = await api.get('/profile/statistics');
+    return response.data;
+  },
+};
+
 // Health check
 export const healthAPI = {
   check: async () => {
