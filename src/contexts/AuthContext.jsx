@@ -226,6 +226,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateAuthProfile = async (userData) => {
+    setUser(userData);
+    localStorage.setItem('codeArenaUser', JSON.stringify(userData));
+  };
+
   const value = {
     user,
     loading,
@@ -234,6 +239,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    updateAuthProfile,
     changePassword,
     forgotPassword,
     resetPassword,
