@@ -6,9 +6,10 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useToast } from '../hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const AuthPage = () => {
-  const { login, register } = useAuth();
+  const { login, register, error } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState({
@@ -18,17 +19,22 @@ const AuthPage = () => {
   });
 
   const [loginForm, setLoginForm] = useState({
-    enrollmentNo: '',
+    email: '',
     password: ''
   });
 
   const [registerForm, setRegisterForm] = useState({
     name: '',
-    enrollmentNo: '',
     email: '',
-    username: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'student',
+    department: 'Computer Science',
+    roll_number: '',
+    year_of_study: 1,
+    section: 'A',
+    phone_no: '',
+    designation: ''
   });
 
   const handleLogin = async (e) => {
@@ -36,17 +42,25 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const success = login(loginForm);
-      if (success) {
+      const result = await login(loginForm);
+      if (result.success) {
         toast({
           title: "Login Successful",
           description: "Welcome back to CodeArena!",
+        });
+        // Redirect to dashboard or home page
+        window.location.href = '/';
+      } else {
+        toast({
+          title: "Login Failed",
+          description: result.error || "Invalid credentials. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -69,11 +83,19 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const success = register(registerForm);
-      if (success) {
+      const result = await register(registerForm);
+      if (result.success) {
         toast({
           title: "Registration Successful",
           description: "Welcome to CodeArena! You can now start solving problems.",
+        });
+        // Redirect to dashboard or home page
+        window.location.href = '/';
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: result.error || "Something went wrong. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
@@ -139,13 +161,13 @@ const AuthPage = () => {
               <TabsContent value="login" className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-enrollment">Enrollment Number</Label>
+                    <Label htmlFor="login-email">Email</Label>
                     <Input
-                      id="login-enrollment"
-                      type="text"
-                      placeholder="Enter your enrollment number"
-                      value={loginForm.enrollmentNo}
-                      onChange={(e) => setLoginForm(prev => ({ ...prev, enrollmentNo: e.target.value }))}
+                      id="login-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={loginForm.email}
+                      onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
                       required
                     />
                   </div>
@@ -190,38 +212,114 @@ const AuthPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-enrollment">Enrollment Number</Label>
-                    <Input
-                      id="register-enrollment"
-                      type="text"
-                      placeholder="Enter your enrollment number"
-                      value={registerForm.enrollmentNo}
-                      onChange={(e) => setRegisterForm(prev => ({ ...prev, enrollmentNo: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">University Email</Label>
+                    <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="Enter your university email"
+                      placeholder="Enter your email"
                       value={registerForm.email}
                       onChange={(e) => setRegisterForm(prev => ({ ...prev, email: e.target.value }))}
                       required
                     />
                   </div>
 
+                  {registerForm.role === 'student' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="register-roll-number">Roll Number</Label>
+                      <Input
+                        id="register-roll-number"
+                        type="text"
+                        placeholder="Enter your roll number"
+                        value={registerForm.roll_number}
+                        onChange={(e) => setRegisterForm(prev => ({ ...prev, roll_number: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label htmlFor="register-username">Username</Label>
+                    <Label htmlFor="register-role">Role</Label>
+                    <Select
+                      value={registerForm.role}
+                      onValueChange={(value) => setRegisterForm(prev => ({ ...prev, role: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="teacher">Teacher</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-department">Department</Label>
                     <Input
-                      id="register-username"
+                      id="register-department"
                       type="text"
-                      placeholder="Choose a username"
-                      value={registerForm.username}
-                      onChange={(e) => setRegisterForm(prev => ({ ...prev, username: e.target.value }))}
+                      placeholder="Enter your department"
+                      value={registerForm.department}
+                      onChange={(e) => setRegisterForm(prev => ({ ...prev, department: e.target.value }))}
                       required
+                    />
+                  </div>
+
+                  {registerForm.role === 'student' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="register-year">Year of Study</Label>
+                        <Select
+                          value={registerForm.year_of_study.toString()}
+                          onValueChange={(value) => setRegisterForm(prev => ({ ...prev, year_of_study: parseInt(value) }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select year" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1st Year</SelectItem>
+                            <SelectItem value="2">2nd Year</SelectItem>
+                            <SelectItem value="3">3rd Year</SelectItem>
+                            <SelectItem value="4">4th Year</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="register-section">Section</Label>
+                        <Input
+                          id="register-section"
+                          type="text"
+                          placeholder="Enter your section (e.g., A, B, C)"
+                          value={registerForm.section}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, section: e.target.value }))}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {registerForm.role === 'teacher' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="register-designation">Designation</Label>
+                      <Input
+                        id="register-designation"
+                        type="text"
+                        placeholder="Enter your designation"
+                        value={registerForm.designation || ''}
+                        onChange={(e) => setRegisterForm(prev => ({ ...prev, designation: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-phone">Phone Number (Optional)</Label>
+                    <Input
+                      id="register-phone"
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={registerForm.phone_no}
+                      onChange={(e) => setRegisterForm(prev => ({ ...prev, phone_no: e.target.value }))}
                     />
                   </div>
 

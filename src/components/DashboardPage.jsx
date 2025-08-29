@@ -28,14 +28,23 @@ import 'react-calendar-heatmap/dist/styles.css';
 const DashboardPage = ({ onViewChange }) => {
   const { user } = useAuth();
 
+  if (!user) return null;
+
+  // Safe defaults for missing fields from backend
+  const submissionStats = user.submissionStats || {
+    easy: { solved: 0, total: 0 },
+    medium: { solved: 0, total: 0 },
+    hard: { solved: 0, total: 0 },
+  };
+
   // Prepare chart data
   const submissionData = [
-    { name: 'Easy', value: user.submissionStats.easy.solved, total: user.submissionStats.easy.total, color: '#10B981' },
-    { name: 'Medium', value: user.submissionStats.medium.solved, total: user.submissionStats.medium.total, color: '#F59E0B' },
-    { name: 'Hard', value: user.submissionStats.hard.solved, total: user.submissionStats.hard.total, color: '#EF4444' }
+    { name: 'Easy', value: submissionStats.easy?.solved ?? 0, total: submissionStats.easy?.total ?? 0, color: '#10B981' },
+    { name: 'Medium', value: submissionStats.medium?.solved ?? 0, total: submissionStats.medium?.total ?? 0, color: '#F59E0B' },
+    { name: 'Hard', value: submissionStats.hard?.solved ?? 0, total: submissionStats.hard?.total ?? 0, color: '#EF4444' }
   ];
 
-  const skillsData = Object.entries(user.skills).map(([skill, level]) => ({
+  const skillsData = Object.entries(user.skills || {}).map(([skill, level]) => ({
     skill,
     level,
     fullMark: 100
@@ -143,9 +152,9 @@ const DashboardPage = ({ onViewChange }) => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Problems Solved</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{user.problemsSolved}</div>
+            <div className="text-3xl font-bold text-primary">{user.problemsSolved ?? 0}</div>
             <div className="text-sm text-muted-foreground mt-1">
-              out of {user.submissionStats.easy.total + user.submissionStats.medium.total + user.submissionStats.hard.total} total
+              out of {(submissionStats.easy?.total ?? 0) + (submissionStats.medium?.total ?? 0) + (submissionStats.hard?.total ?? 0)} total
             </div>
           </CardContent>
         </Card>
@@ -155,9 +164,9 @@ const DashboardPage = ({ onViewChange }) => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Current Rating</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{user.rating}</div>
+            <div className="text-3xl font-bold text-primary">{user.rating ?? 0}</div>
             <Badge variant="secondary" className="mt-1">
-              {user.rank}
+              {user.rank ?? 'Unranked'}
             </Badge>
           </CardContent>
         </Card>
@@ -167,9 +176,9 @@ const DashboardPage = ({ onViewChange }) => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Acceptance Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-success">{user.acceptanceRate}%</div>
+            <div className="text-3xl font-bold text-success">{user.acceptanceRate ?? 0}%</div>
             <div className="text-sm text-muted-foreground mt-1">
-              {user.problemsSolved} / {user.totalSubmissions} submissions
+              {(user.problemsSolved ?? 0)} / {(user.totalSubmissions ?? 0)} submissions
             </div>
           </CardContent>
         </Card>
@@ -179,7 +188,7 @@ const DashboardPage = ({ onViewChange }) => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Badges Earned</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-warning">{user.badges.length}</div>
+            <div className="text-3xl font-bold text-warning">{(user.badges || []).length}</div>
             <div className="text-sm text-muted-foreground mt-1">achievements unlocked</div>
           </CardContent>
         </Card>
@@ -195,15 +204,19 @@ const DashboardPage = ({ onViewChange }) => {
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={user.profilePhoto} alt={user.name} />
+                <AvatarImage src={user.profilePhoto || ''} alt={user.name} />
                 <AvatarFallback className="text-lg">
                   {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="font-semibold text-lg">{user.name}</h3>
-                <p className="text-muted-foreground">@{user.username}</p>
-                <p className="text-sm text-muted-foreground">{user.university}</p>
+                {user.username && (
+                  <p className="text-muted-foreground">@{user.username}</p>
+                )}
+                {user.university && (
+                  <p className="text-sm text-muted-foreground">{user.university}</p>
+                )}
               </div>
             </div>
             
@@ -211,25 +224,25 @@ const DashboardPage = ({ onViewChange }) => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Easy Problems</span>
-                  <span>{user.submissionStats.easy.solved}/{user.submissionStats.easy.total}</span>
+                  <span>{submissionStats.easy?.solved ?? 0}/{submissionStats.easy?.total ?? 0}</span>
                 </div>
-                <Progress value={(user.submissionStats.easy.solved / user.submissionStats.easy.total) * 100} className="h-2" />
+                <Progress value={((submissionStats.easy?.solved ?? 0) / Math.max(1, (submissionStats.easy?.total ?? 0))) * 100} className="h-2" />
               </div>
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Medium Problems</span>
-                  <span>{user.submissionStats.medium.solved}/{user.submissionStats.medium.total}</span>
+                  <span>{submissionStats.medium?.solved ?? 0}/{submissionStats.medium?.total ?? 0}</span>
                 </div>
-                <Progress value={(user.submissionStats.medium.solved / user.submissionStats.medium.total) * 100} className="h-2" />
+                <Progress value={((submissionStats.medium?.solved ?? 0) / Math.max(1, (submissionStats.medium?.total ?? 0))) * 100} className="h-2" />
               </div>
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Hard Problems</span>
-                  <span>{user.submissionStats.hard.solved}/{user.submissionStats.hard.total}</span>
+                  <span>{submissionStats.hard?.solved ?? 0}/{submissionStats.hard?.total ?? 0}</span>
                 </div>
-                <Progress value={(user.submissionStats.hard.solved / user.submissionStats.hard.total) * 100} className="h-2" />
+                <Progress value={((submissionStats.hard?.solved ?? 0) / Math.max(1, (submissionStats.hard?.total ?? 0))) * 100} className="h-2" />
               </div>
             </div>
           </CardContent>
@@ -272,7 +285,7 @@ const DashboardPage = ({ onViewChange }) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={user.ratingHistory}>
+              <LineChart data={user.ratingHistory || []}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis 
                   dataKey="date" 
@@ -316,7 +329,7 @@ const DashboardPage = ({ onViewChange }) => {
             <CalendarHeatmap
               startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
               endDate={new Date()}
-              values={user.activityData}
+              values={user.activityData || []}
               classForValue={getHeatmapClassForValue}
               tooltipDataAttrs={(value) => {
                 return {
@@ -368,7 +381,7 @@ const DashboardPage = ({ onViewChange }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {user.badges.map((badge, index) => (
+            {(user.badges || []).map((badge, index) => (
               <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
                 <div className="text-2xl">{badge.icon}</div>
                 <div>

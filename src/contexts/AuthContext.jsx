@@ -1,74 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-// Mock user data
-const mockUser = {
-  id: 1,
-  name: "Alex Thompson",
-  username: "alexthomps",
-  email: "alex.thompson@university.edu",
-  enrollmentNo: "20CS001",
-  profilePhoto: "/api/placeholder/150/150",
-  university: "Tech University",
-  rating: 1847,
-  rank: "Expert",
-  problemsSolved: 245,
-  totalSubmissions: 478,
-  acceptanceRate: 51.3,
-  badges: [
-    { name: "100 Days Streak", icon: "🔥", description: "Solved problems for 100 consecutive days" },
-    { name: "Speed Demon", icon: "⚡", description: "Solved 10 problems in under 5 minutes each" },
-    { name: "Contest Winner", icon: "🏆", description: "Won first place in a monthly contest" },
-    { name: "Problem Setter", icon: "✍️", description: "Created problems for the platform" }
-  ],
-  skills: {
-    "Dynamic Programming": 85,
-    "Graph Theory": 78,
-    "Data Structures": 92,
-    "Algorithms": 88,
-    "Mathematics": 65,
-    "String Processing": 76
-  },
-  activityData: generateActivityData(),
-  ratingHistory: generateRatingHistory(),
-  submissionStats: {
-    easy: { solved: 98, total: 150 },
-    medium: { solved: 127, total: 300 },
-    hard: { solved: 20, total: 100 }
-  }
-};
-
-function generateActivityData() {
-  const data = [];
-  const startDate = new Date();
-  startDate.setFullYear(startDate.getFullYear() - 1);
-  
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    const count = Math.random() > 0.7 ? Math.floor(Math.random() * 5) + 1 : 0;
-    data.push({
-      date: date.toISOString().split('T')[0],
-      count
-    });
-  }
-  return data;
-}
-
-function generateRatingHistory() {
-  const data = [];
-  let rating = 1200;
-  
-  for (let i = 0; i < 20; i++) {
-    const change = (Math.random() - 0.5) * 100;
-    rating = Math.max(800, Math.min(2400, rating + change));
-    data.push({
-      contest: `Contest ${i + 1}`,
-      rating: Math.round(rating),
-      date: new Date(Date.now() - (20 - i) * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    });
-  }
-  return data;
-}
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext({});
 
@@ -83,47 +14,231 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Check if user is authenticated on app load
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      const savedUser = localStorage.getItem('codeArenaUser');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('codeArenaToken');
+        const savedUser = localStorage.getItem('codeArenaUser');
+        
+        if (token && savedUser) {
+          // Verify token is still valid by fetching profile
+          const response = await authAPI.getProfile();
+          if (response.success) {
+            setUser(response.data.user);
+          } else {
+            // Token is invalid, clear storage
+            localStorage.removeItem('codeArenaToken');
+            localStorage.removeItem('codeArenaUser');
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // Clear invalid tokens
+        localStorage.removeItem('codeArenaToken');
+        localStorage.removeItem('codeArenaUser');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    checkAuth();
   }, []);
 
-  const login = (credentials) => {
-    // Mock login - in real app, this would validate against backend
-    const userData = { ...mockUser, ...credentials };
-    setUser(userData);
-    localStorage.setItem('codeArenaUser', JSON.stringify(userData));
-    return true;
+  const login = async (credentials) => {
+    try {
+      setError(null);
+      const response = await authAPI.login(credentials);
+      
+      if (response.success) {
+        const { user, token } = response.data;
+        
+        // Store token and user data
+        localStorage.setItem('codeArenaToken', token);
+        localStorage.setItem('codeArenaUser', JSON.stringify(user));
+        
+        // Set user in state
+        setUser(user);
+        
+        return { success: true, user };
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
   };
 
-  const register = (userData) => {
-    // Mock registration
-    const newUser = { ...mockUser, ...userData, id: Date.now() };
-    setUser(newUser);
-    localStorage.setItem('codeArenaUser', JSON.stringify(newUser));
-    return true;
+  const register = async (userData) => {
+    try {
+      setError(null);
+      
+      // Transform frontend data to match backend expectations
+      const registrationData = {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        password_confirmation: userData.confirmPassword,
+        role: userData.role,
+        department: userData.department,
+        // Student-specific fields
+        roll_number: userData.role === 'student' ? userData.roll_number : undefined,
+        year_of_study: userData.role === 'student' ? Number(userData.year_of_study) : undefined,
+        section: userData.role === 'student' ? userData.section : undefined,
+        // Teacher-specific fields
+        designation: userData.role === 'teacher' ? userData.designation : undefined,
+        // Common optional
+        phone_no: userData.phone_no || null,
+      };
+
+      const response = await authAPI.register(registrationData);
+      
+      if (response.success) {
+        const { user, token } = response.data;
+        
+        // Store token and user data
+        localStorage.setItem('codeArenaToken', token);
+        localStorage.setItem('codeArenaUser', JSON.stringify(user));
+        
+        // Set user in state
+        setUser(user);
+        
+        return { success: true, user };
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('codeArenaUser');
+  const logout = async () => {
+    try {
+      // Call logout API to revoke token
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Clear local storage and state regardless of API call result
+      localStorage.removeItem('codeArenaToken');
+      localStorage.removeItem('codeArenaUser');
+      setUser(null);
+      setError(null);
+    }
+  };
+
+  const updateProfile = async (profileData) => {
+    try {
+      setError(null);
+      const response = await authAPI.updateProfile(profileData);
+      
+      if (response.success) {
+        const updatedUser = response.data.user;
+        
+        // Update stored user data
+        localStorage.setItem('codeArenaUser', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        
+        return { success: true, user: updatedUser };
+      } else {
+        throw new Error(response.message || 'Profile update failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Profile update failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const changePassword = async (passwordData) => {
+    try {
+      setError(null);
+      const response = await authAPI.changePassword(passwordData);
+      
+      if (response.success) {
+        return { success: true };
+      } else {
+        throw new Error(response.message || 'Password change failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Password change failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    try {
+      setError(null);
+      const response = await authAPI.forgotPassword(email);
+      
+      if (response.success) {
+        return { success: true, message: response.message };
+      } else {
+        throw new Error(response.message || 'Password reset request failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Password reset request failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const resetPassword = async (resetData) => {
+    try {
+      setError(null);
+      const response = await authAPI.resetPassword(resetData);
+      
+      if (response.success) {
+        return { success: true, message: response.message };
+      } else {
+        throw new Error(response.message || 'Password reset failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Password reset failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const refreshToken = async () => {
+    try {
+      const response = await authAPI.refreshToken();
+      
+      if (response.success) {
+        const { token } = response.data;
+        localStorage.setItem('codeArenaToken', token);
+        return { success: true, token };
+      } else {
+        throw new Error('Token refresh failed');
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // If refresh fails, logout user
+      await logout();
+      return { success: false };
+    }
   };
 
   const value = {
     user,
+    loading,
+    error,
     login,
     register,
     logout,
-    loading
+    updateProfile,
+    changePassword,
+    forgotPassword,
+    resetPassword,
+    refreshToken,
+    isAuthenticated: !!user,
   };
 
   return (
