@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import AuthPage from './components/AuthPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardPage from './components/DashboardPage';
 import ProblemListPage from './components/ProblemListPage';
@@ -53,6 +54,8 @@ const AppContent = () => {
       </div>
     );
   }
+
+
 
   if (!user) {
     return <AuthPage />;
@@ -124,7 +127,10 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppContent />
+            <Routes>
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="*" element={<AppContent />} />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

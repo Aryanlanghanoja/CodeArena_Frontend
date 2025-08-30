@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useToast } from '../hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 const AuthPage = () => {
-  const { login, register, error } = useAuth();
+  const { login, register, forgotPassword, error } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState({
@@ -17,6 +18,9 @@ const AuthPage = () => {
     register: false,
     confirm: false
   });
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -116,6 +120,43 @@ const AuthPage = () => {
     }));
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setIsForgotPasswordLoading(true);
+
+    try {
+      const result = await forgotPassword(forgotPasswordEmail);
+      if (result.success) {
+        // For development, show the reset URL if available
+        const resetUrl = result.data?.reset_url;
+        const description = resetUrl 
+          ? `Reset link generated! For development, you can use this link: ${resetUrl}`
+          : "If an account with that email exists, you will receive a password reset link shortly.";
+        
+        toast({
+          title: "Reset Link Sent",
+          description: description,
+        });
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      } else {
+        toast({
+          title: "Failed to Send Reset Link",
+          description: result.error || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Send Reset Link",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsForgotPasswordLoading(false);
+    }
+  };
+
   const EyeIcon = ({ isVisible, onClick }) => (
     <button
       type="button"
@@ -195,6 +236,63 @@ const AuthPage = () => {
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
+
+                <div className="flex justify-end">
+                  <Dialog
+                    open={showForgotPassword}
+                    onOpenChange={(open) => {
+                      setShowForgotPassword(open);
+                      if (open) {
+                        setForgotPasswordEmail(loginForm.email || '');
+                      }
+                    }}
+                  >
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="px-0 text-sm text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setForgotPasswordEmail(loginForm.email || '');
+                        setShowForgotPassword(true);
+                      }}
+                    >
+                      Forgot your password?
+                    </Button>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reset Password</DialogTitle>
+                        <DialogDescription>
+                          Enter your email address and we'll send you a link to reset your password.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="forgot-email">Email</Label>
+                          <Input
+                            id="forgot-email"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={forgotPasswordEmail}
+                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowForgotPassword(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit" disabled={isForgotPasswordLoading || !forgotPasswordEmail}>
+                            {isForgotPasswordLoading ? "Sending..." : "Send Reset Link"}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4">
