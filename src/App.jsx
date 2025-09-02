@@ -18,7 +18,28 @@ import ProfilePage from './components/ProfilePage';
 import ExamPage from './components/ExamPage';
 import CoursesPage from './components/CoursesPage';
 import LearningPathsPage from './components/LearningPathsPage';
+
+// Import new role-based components
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
+
+// Admin components
+import AdminUsersPage from './components/admin/AdminUsersPage';
+import AdminClassesPage from './components/admin/AdminClassesPage';
+import AdminSystemHealthPage from './components/admin/AdminSystemHealthPage';
+
+// Teacher components
+import TeacherClassesPage from './components/teacher/TeacherClassesPage';
+import TeacherQuestionBankPage from './components/teacher/TeacherQuestionBankPage';
+import TeacherExamsPage from './components/teacher/TeacherExamsPage';
+
+// Student components
+import StudentClassesPage from './components/student/StudentClassesPage';
+import StudentExamsPage from './components/student/StudentExamsPage';
+import StudentPracticePage from './components/student/StudentPracticePage';
+
 import { mockProblems, mockContests } from './data/mockData';
+
 const ContestDetailsRoute = ({ onBackToContests, onProblemSelect }) => {
   const { contestId } = useParams();
   const contest = mockContests.find(c => String(c.id) === String(contestId));
@@ -54,8 +75,6 @@ const AppContent = () => {
       </div>
     );
   }
-
-
 
   if (!user) {
     return <AuthPage />;
@@ -103,7 +122,10 @@ const AppContent = () => {
   return (
     <DashboardLayout>
       <Routes>
+        {/* Main Dashboard */}
         <Route path="/dashboard" element={<DashboardPage />} />
+        
+        {/* Legacy Routes */}
         <Route path="/problems" element={<ProblemListPage onProblemSelect={handleProblemSelect} />} />
         <Route path="/contests" element={<ContestsPage onContestSelect={handleContestSelect} />} />
         <Route path="/contests/:contestId" element={<ContestDetailsRoute onBackToContests={handleBackToContests} onProblemSelect={handleProblemSelect} />} />
@@ -113,6 +135,86 @@ const AppContent = () => {
         <Route path="/courses/:courseId" element={<CoursesPage onBackToDashboard={handleBackToDashboard} />} />
         <Route path="/learning-paths" element={<LearningPathsPage onPathSelect={handlePathSelect} onBackToDashboard={handleBackToDashboard} />} />
         <Route path="/learning-paths/:pathId" element={<LearningPathsPage onBackToDashboard={handleBackToDashboard} />} />
+        
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/users" 
+          element={
+            <RoleBasedRoute allowedRoles={['admin']}>
+              <AdminUsersPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/classes" 
+          element={
+            <RoleBasedRoute allowedRoles={['admin']}>
+              <AdminClassesPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/system-health" 
+          element={
+            <RoleBasedRoute allowedRoles={['admin']}>
+              <AdminSystemHealthPage />
+            </RoleBasedRoute>
+          } 
+        />
+        
+        {/* Teacher Routes */}
+        <Route 
+          path="/teacher/classes" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <TeacherClassesPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/questions" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <TeacherQuestionBankPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/exams" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <TeacherExamsPage />
+            </RoleBasedRoute>
+          } 
+        />
+        
+        {/* Student Routes */}
+        <Route 
+          path="/student/classes" 
+          element={
+            <RoleBasedRoute allowedRoles={['student']}>
+              <StudentClassesPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/student/exams" 
+          element={
+            <RoleBasedRoute allowedRoles={['student']}>
+              <StudentExamsPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/student/practice" 
+          element={
+            <RoleBasedRoute allowedRoles={['student']}>
+              <StudentPracticePage />
+            </RoleBasedRoute>
+          } 
+        />
+        
+        {/* Default route */}
         <Route path="*" element={<DashboardPage />} />
       </Routes>
     </DashboardLayout>

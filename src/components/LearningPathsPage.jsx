@@ -1,313 +1,519 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
 import { 
-  MapPin, 
-  Clock, 
-  Award, 
-  CheckCircle, 
-  Play,
-  BookOpen,
-  Code,
-  Database,
-  Brain,
-  Zap,
-  Target,
-  TrendingUp
-} from 'lucide-react';
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from './ui/tabs';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../hooks/use-toast';
 
 const LearningPathsPage = ({ onPathSelect, onBackToDashboard }) => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [learningPaths, setLearningPaths] = useState([]);
+  const [userProgress, setUserProgress] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const learningPaths = [
-    {
-      id: '1',
-      title: 'Full Stack Web Developer',
-      description: 'Master both frontend and backend development with modern technologies like React, Node.js, and databases.',
-      difficulty: 'Intermediate',
-      duration: '6 months',
-      courses: 12,
-      projects: 8,
-      skills: ['HTML/CSS', 'JavaScript', 'React', 'Node.js', 'MongoDB', 'Git'],
-      progress: 45,
-      enrolled: true,
-      category: 'Web Development',
-      icon: 'code',
-      estimatedHours: 240,
-      completionRate: 78,
-      nextMilestone: 'React Advanced Patterns'
-    },
-    {
-      id: '2',
-      title: 'Data Science & Analytics',
-      description: 'Learn data analysis, machine learning, and statistical modeling with Python and popular libraries.',
-      difficulty: 'Advanced',
-      duration: '8 months',
-      courses: 15,
-      projects: 10,
-      skills: ['Python', 'Pandas', 'NumPy', 'Scikit-learn', 'TensorFlow', 'SQL'],
-      progress: 0,
-      enrolled: false,
-      category: 'Data Science',
-      icon: 'brain',
-      estimatedHours: 320,
-      completionRate: 85
-    },
-    {
-      id: '3',
-      title: 'Mobile App Development',
-      description: 'Build native and cross-platform mobile applications using React Native and Flutter.',
-      difficulty: 'Intermediate',
-      duration: '5 months',
-      courses: 10,
-      projects: 6,
-      skills: ['React Native', 'Flutter', 'Dart', 'iOS', 'Android', 'Firebase'],
-      progress: 20,
-      enrolled: true,
-      category: 'Mobile Development',
-      icon: 'zap',
-      estimatedHours: 200,
-      completionRate: 82,
-      nextMilestone: 'State Management with Redux'
-    },
-    {
-      id: '4',
-      title: 'DevOps & Cloud Engineering',
-      description: 'Master deployment, CI/CD, containerization, and cloud platforms like AWS and Azure.',
-      difficulty: 'Advanced',
-      duration: '7 months',
-      courses: 14,
-      projects: 12,
-      skills: ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Terraform', 'Linux'],
-      progress: 0,
-      enrolled: false,
-      category: 'DevOps',
-      icon: 'target',
-      estimatedHours: 280,
-      completionRate: 79
-    },
-    {
-      id: '5',
-      title: 'Cybersecurity Specialist',
-      description: 'Learn ethical hacking, network security, and security auditing to protect systems and data.',
-      difficulty: 'Advanced',
-      duration: '9 months',
-      courses: 16,
-      projects: 8,
-      skills: ['Penetration Testing', 'Network Security', 'Cryptography', 'Risk Assessment'],
-      progress: 0,
-      enrolled: false,
-      category: 'Security',
-      icon: 'shield',
-      estimatedHours: 360,
-      completionRate: 73
-    },
-    {
-      id: '6',
-      title: 'Competitive Programming',
-      description: 'Master algorithms and data structures for coding competitions and technical interviews.',
-      difficulty: 'Intermediate',
-      duration: '4 months',
-      courses: 8,
-      projects: 15,
-      skills: ['Algorithms', 'Data Structures', 'Problem Solving', 'Math', 'Graph Theory'],
-      progress: 75,
-      enrolled: true,
-      category: 'Algorithms',
-      icon: 'trending-up',
-      estimatedHours: 160,
-      completionRate: 88,
-      nextMilestone: 'Advanced Dynamic Programming'
+  // Mock data - replace with actual API calls
+  useEffect(() => {
+    const fetchLearningPaths = async () => {
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockPaths = [
+          {
+            id: 1,
+            title: 'Programming Fundamentals',
+            description: 'Master the basics of programming with hands-on projects',
+            difficulty: 'Beginner',
+            duration: '8 weeks',
+            topics: ['Variables', 'Control Structures', 'Functions', 'Data Types'],
+            totalLessons: 24,
+            totalExercises: 48,
+            totalProjects: 6,
+            prerequisites: [],
+            suitableFor: ['student'],
+            category: 'Programming',
+            instructor: 'Dr. Sarah Smith',
+            rating: 4.8,
+            enrolledStudents: 156,
+            completionRate: 78.5
+          },
+          {
+            id: 2,
+            title: 'Data Structures & Algorithms',
+            description: 'Learn essential data structures and algorithmic thinking',
+            difficulty: 'Intermediate',
+            duration: '12 weeks',
+            topics: ['Arrays', 'Linked Lists', 'Trees', 'Graphs', 'Sorting', 'Searching'],
+            totalLessons: 36,
+            totalExercises: 72,
+            totalProjects: 8,
+            prerequisites: ['Programming Fundamentals'],
+            suitableFor: ['student'],
+            category: 'Computer Science',
+            instructor: 'Prof. John Davis',
+            rating: 4.9,
+            enrolledStudents: 89,
+            completionRate: 65.2
+          },
+          {
+            id: 3,
+            title: 'Web Development Mastery',
+            description: 'Build modern web applications from frontend to backend',
+            difficulty: 'Intermediate',
+            duration: '16 weeks',
+            topics: ['HTML/CSS', 'JavaScript', 'React', 'Node.js', 'Databases'],
+            totalLessons: 48,
+            totalExercises: 96,
+            totalProjects: 12,
+            prerequisites: ['Programming Fundamentals'],
+            suitableFor: ['student'],
+            category: 'Web Development',
+            instructor: 'Dr. Emily Brown',
+            rating: 4.7,
+            enrolledStudents: 203,
+            completionRate: 71.3
+          },
+          {
+            id: 4,
+            title: 'Advanced Algorithm Design',
+            description: 'Master complex algorithms and optimization techniques',
+            difficulty: 'Advanced',
+            duration: '14 weeks',
+            topics: ['Dynamic Programming', 'Greedy Algorithms', 'Graph Algorithms', 'Complexity Analysis'],
+            totalLessons: 42,
+            totalExercises: 84,
+            totalProjects: 10,
+            prerequisites: ['Data Structures & Algorithms'],
+            suitableFor: ['student'],
+            category: 'Computer Science',
+            instructor: 'Prof. John Davis',
+            rating: 4.6,
+            enrolledStudents: 45,
+            completionRate: 58.9
+          },
+          {
+            id: 5,
+            title: 'Teaching Programming',
+            description: 'Learn effective methods for teaching programming concepts',
+            difficulty: 'Intermediate',
+            duration: '10 weeks',
+            topics: ['Pedagogy', 'Assessment Design', 'Student Engagement', 'Curriculum Planning'],
+            totalLessons: 30,
+            totalExercises: 45,
+            totalProjects: 5,
+            prerequisites: ['Programming Fundamentals'],
+            suitableFor: ['teacher'],
+            category: 'Education',
+            instructor: 'Dr. Sarah Smith',
+            rating: 4.8,
+            enrolledStudents: 67,
+            completionRate: 82.1
+          },
+          {
+            id: 6,
+            title: 'Platform Administration',
+            description: 'Master the tools and techniques for managing CodeArena',
+            difficulty: 'Advanced',
+            duration: '6 weeks',
+            topics: ['User Management', 'System Monitoring', 'Security', 'Performance Optimization'],
+            totalLessons: 18,
+            totalExercises: 24,
+            totalProjects: 3,
+            prerequisites: [],
+            suitableFor: ['admin'],
+            category: 'Administration',
+            instructor: 'System Admin',
+            rating: 4.9,
+            enrolledStudents: 12,
+            completionRate: 91.7
+          }
+        ];
+
+        // Mock user progress data
+        const mockProgress = {
+          1: { completedLessons: 18, completedExercises: 35, completedProjects: 4, currentLesson: 19 },
+          2: { completedLessons: 12, completedExercises: 24, completedProjects: 3, currentLesson: 13 },
+          3: { completedLessons: 0, completedExercises: 0, completedProjects: 0, currentLesson: 1 },
+          4: { completedLessons: 0, completedExercises: 0, completedProjects: 0, currentLesson: 1 },
+          5: { completedLessons: 8, completedExercises: 12, completedProjects: 1, currentLesson: 9 },
+          6: { completedLessons: 0, completedExercises: 0, completedProjects: 0, currentLesson: 1 }
+        };
+        
+        setLearningPaths(mockPaths);
+        setUserProgress(mockProgress);
+      } catch (error) {
+        console.error('Failed to fetch learning paths:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLearningPaths();
+  }, []);
+
+  const getDifficultyBadge = (difficulty) => {
+    const variants = {
+      Beginner: 'default',
+      Intermediate: 'secondary',
+      Advanced: 'destructive'
+    };
+    
+    return (
+      <Badge variant={variants[difficulty] || 'secondary'}>
+        {difficulty}
+      </Badge>
+    );
+  };
+
+  const getCategoryBadge = (category) => {
+    return (
+      <Badge variant="outline">
+        {category}
+      </Badge>
+    );
+  };
+
+  const calculateProgress = (pathId) => {
+    const progress = userProgress[pathId];
+    if (!progress) return 0;
+    
+    const totalItems = progress.completedLessons + progress.completedExercises + progress.completedProjects;
+    const maxItems = learningPaths.find(p => p.id === pathId)?.totalLessons + 
+                    learningPaths.find(p => p.id === pathId)?.totalExercises + 
+                    learningPaths.find(p => p.id === pathId)?.totalProjects;
+    
+    return maxItems ? Math.round((totalItems / maxItems) * 100) : 0;
+  };
+
+  const getProgressColor = (progress) => {
+    if (progress >= 80) return 'text-green-600';
+    if (progress >= 60) return 'text-yellow-600';
+    if (progress >= 40) return 'text-blue-600';
+    return 'text-gray-600';
+  };
+
+  const filteredPaths = learningPaths.filter(path => {
+    // Filter by role suitability
+    if (path.suitableFor && !path.suitableFor.includes(user?.role)) {
+      return false;
     }
-  ];
+    return true;
+  });
 
-  const categories = ['All', 'Web Development', 'Data Science', 'Mobile Development', 'DevOps', 'Security', 'Algorithms'];
-
-  const filteredPaths = learningPaths.filter(path => 
-    selectedCategory === 'All' || path.category === selectedCategory
-  );
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'Beginner': return 'text-success bg-success/10 border-success/20';
-      case 'Intermediate': return 'text-warning bg-warning/10 border-warning/20';
-      case 'Advanced': return 'text-error bg-error/10 border-error/20';
-      default: return 'text-muted-foreground bg-muted/10 border-muted/20';
+  const getRoleSpecificPaths = () => {
+    switch (user?.role) {
+      case 'admin':
+        return filteredPaths.filter(path => path.category === 'Administration');
+      case 'teacher':
+        return filteredPaths.filter(path => path.category === 'Education');
+      case 'student':
+        return filteredPaths.filter(path => path.category !== 'Administration' && path.category !== 'Education');
+      default:
+        return filteredPaths;
     }
   };
 
-  const getIcon = (iconName) => {
-    switch (iconName) {
-      case 'code': return <Code className="w-8 h-8" />;
-      case 'brain': return <Brain className="w-8 h-8" />;
-      case 'zap': return <Zap className="w-8 h-8" />;
-      case 'target': return <Target className="w-8 h-8" />;
-      case 'trending-up': return <TrendingUp className="w-8 h-8" />;
-      default: return <BookOpen className="w-8 h-8" />;
-    }
-  };
+  const rolePaths = getRoleSpecificPaths();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Button onClick={onBackToDashboard} variant="ghost" className="mb-4">
-            ← Back to Dashboard
-          </Button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground flex items-center">
-                <MapPin className="w-10 h-10 text-primary mr-3" />
-                Learning Paths
-              </h1>
-              <p className="text-muted-foreground mt-2">Structured roadmaps to master your chosen field</p>
-            </div>
-            <Card className="bg-primary/10 border-primary/20 hidden md:block">
-              <CardContent className="p-4 text-center">
-                <Award className="w-8 h-8 text-primary mx-auto mb-2" />
-                <div className="text-sm font-semibold text-primary">3 Paths</div>
-                <div className="text-xs text-muted-foreground">In Progress</div>
-              </CardContent>
-            </Card>
-          </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Learning Paths</h1>
+          <p className="text-muted-foreground">
+            Structured learning journeys designed for your role and skill level.
+          </p>
         </div>
-
-        {/* Category Filter */}
-        <Card className="mb-8 bg-card border-border">
-          <CardContent className="p-6">
-            <div className="flex flex-wrap gap-2">
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className={selectedCategory === category ? "bg-primary text-primary-foreground" : ""}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Learning Paths Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {filteredPaths.map((path) => (
-            <Card 
-              key={path.id} 
-              className={`bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                path.enrolled ? 'ring-2 ring-primary/20' : ''
-              }`}
-              onClick={() => onPathSelect(path.id)}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      {getIcon(path.icon)}
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-xl text-foreground mb-2">{path.title}</CardTitle>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{path.description}</p>
-                    </div>
-                  </div>
-                  <Badge className={getDifficultyColor(path.difficulty)}>
-                    {path.difficulty}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                {/* Progress (for enrolled paths) */}
-                {path.enrolled && (
-                  <div className="bg-muted/20 p-4 rounded-lg border border-border">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-foreground">Your Progress</span>
-                      <span className="text-sm text-primary font-bold">{path.progress}%</span>
-                    </div>
-                    <Progress value={path.progress} className="mb-3" />
-                    {path.nextMilestone && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Target className="w-3 h-3 mr-1" />
-                        Next: {path.nextMilestone}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Path Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/10 p-3 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-primary">{path.courses}</div>
-                    <div className="text-xs text-muted-foreground">Courses</div>
-                  </div>
-                  <div className="bg-muted/10 p-3 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-secondary">{path.projects}</div>
-                    <div className="text-xs text-muted-foreground">Projects</div>
-                  </div>
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-3">Skills You'll Learn</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {path.skills.map((skill) => (
-                      <Badge key={skill} variant="outline" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Path Info */}
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {path.duration}
-                    </div>
-                    <div className="flex items-center">
-                      <Award className="w-4 h-4 mr-1" />
-                      {path.completionRate}% success rate
-                    </div>
-                  </div>
-                  <div className="text-xs">
-                    ~{path.estimatedHours}hrs
-                  </div>
-                </div>
-
-                {/* Action Button */}
-                <div className="pt-2">
-                  {path.enrolled ? (
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                      <Play className="w-4 h-4 mr-2" />
-                      Continue Learning
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Start Path
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredPaths.length === 0 && (
-          <div className="text-center py-12">
-            <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">No learning paths found</h3>
-            <p className="text-muted-foreground">Try selecting a different category</p>
-          </div>
-        )}
+        <Button onClick={onBackToDashboard} variant="outline">
+          Back to Dashboard
+        </Button>
       </div>
+
+      {/* Role-Specific Welcome */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Welcome, {user?.name}!</CardTitle>
+          <CardDescription>
+            Here are learning paths tailored for your role as a <strong>{user?.role}</strong>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                {rolePaths.filter(p => userProgress[p.id]).length}
+              </div>
+              <div className="text-sm text-muted-foreground">Enrolled Paths</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {rolePaths.filter(p => userProgress[p.id] && calculateProgress(p.id) === 100).length}
+              </div>
+              <div className="text-sm text-muted-foreground">Completed Paths</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {rolePaths.filter(p => userProgress[p.id]).reduce((sum, p) => sum + calculateProgress(p.id), 0) / 
+                 Math.max(rolePaths.filter(p => userProgress[p.id]).length, 1)}
+              </div>
+              <div className="text-sm text-muted-foreground">Average Progress</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Learning Paths */}
+      <Tabs defaultValue="enrolled" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="enrolled">My Learning Paths</TabsTrigger>
+          <TabsTrigger value="available">Available Paths</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="enrolled" className="space-y-4">
+          <h2 className="text-xl font-semibold">Enrolled Learning Paths</h2>
+          {rolePaths.filter(p => userProgress[p.id]).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rolePaths.filter(p => userProgress[p.id]).map((path) => {
+                const progress = calculateProgress(path.id);
+                const userPathProgress = userProgress[path.id];
+                
+                return (
+                  <Card key={path.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex gap-2">
+                          {getDifficultyBadge(path.difficulty)}
+                          {getCategoryBadge(path.category)}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">Rating</div>
+                          <div className="font-medium">{path.rating}/5.0</div>
+                        </div>
+                      </div>
+                      <CardTitle className="text-lg">{path.title}</CardTitle>
+                      <CardDescription>{path.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Progress Section */}
+                        <div>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span>Progress</span>
+                            <span className={`font-medium ${getProgressColor(progress)}`}>
+                              {progress}%
+                            </span>
+                          </div>
+                          <Progress value={progress} className="mb-2" />
+                          <div className="text-xs text-muted-foreground">
+                            {userPathProgress.completedLessons}/{path.totalLessons} lessons • 
+                            {userPathProgress.completedExercises}/{path.totalExercises} exercises • 
+                            {userPathProgress.completedProjects}/{path.totalProjects} projects
+                          </div>
+                        </div>
+
+                        {/* Current Status */}
+                        <div className="text-sm">
+                          <div className="flex justify-between">
+                            <span>Current Lesson:</span>
+                            <span className="font-medium">{userPathProgress.currentLesson}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Duration:</span>
+                            <span className="font-medium">{path.duration}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Instructor:</span>
+                            <span className="font-medium">{path.instructor}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          <Button 
+                            className="flex-1"
+                            onClick={() => onPathSelect(path.id)}
+                          >
+                            Continue Learning
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => navigate(`/learning-paths/${path.id}`)}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="mb-4">You haven't enrolled in any learning paths yet.</p>
+              <Button onClick={() => document.querySelector('[data-value="available"]').click()}>
+                Browse Available Paths
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="available" className="space-y-4">
+          <h2 className="text-xl font-semibold">Available Learning Paths</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rolePaths.map((path) => {
+              const isEnrolled = userProgress[path.id];
+              const progress = isEnrolled ? calculateProgress(path.id) : 0;
+              
+              return (
+                <Card key={path.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex gap-2">
+                        {getDifficultyBadge(path.difficulty)}
+                        {getCategoryBadge(path.category)}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Rating</div>
+                        <div className="font-medium">{path.rating}/5.0</div>
+                      </div>
+                    </div>
+                    <CardTitle className="text-lg">{path.title}</CardTitle>
+                    <CardDescription>{path.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Path Details */}
+                      <div className="text-sm space-y-2">
+                        <div className="flex justify-between">
+                          <span>Duration:</span>
+                          <span className="font-medium">{path.duration}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Lessons:</span>
+                          <span className="font-medium">{path.totalLessons}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Exercises:</span>
+                          <span className="font-medium">{path.totalExercises}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Projects:</span>
+                          <span className="font-medium">{path.totalProjects}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Students:</span>
+                          <span className="font-medium">{path.enrolledStudents}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Completion Rate:</span>
+                          <span className="font-medium">{path.completionRate}%</span>
+                        </div>
+                      </div>
+
+                      {/* Topics */}
+                      <div>
+                        <div className="text-sm font-medium mb-2">Topics Covered:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {path.topics.slice(0, 4).map((topic, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {topic}
+                            </Badge>
+                          ))}
+                          {path.topics.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{path.topics.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Prerequisites */}
+                      {path.prerequisites.length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium mb-2">Prerequisites:</div>
+                          <div className="text-sm text-muted-foreground">
+                            {path.prerequisites.join(', ')}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        {isEnrolled ? (
+                          <>
+                            <Button 
+                              className="flex-1"
+                              onClick={() => onPathSelect(path.id)}
+                            >
+                              Continue Learning
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => navigate(`/learning-paths/${path.id}`)}
+                            >
+                              View Details
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button 
+                              className="flex-1"
+                              onClick={() => {
+                                // Simulate enrollment
+                                setUserProgress(prev => ({
+                                  ...prev,
+                                  [path.id]: {
+                                    completedLessons: 0,
+                                    completedExercises: 0,
+                                    completedProjects: 0,
+                                    currentLesson: 1
+                                  }
+                                }));
+                                toast({
+                                  title: "Enrolled!",
+                                  description: `You've successfully enrolled in "${path.title}"`,
+                                });
+                              }}
+                            >
+                              Enroll Now
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => navigate(`/learning-paths/${path.id}`)}
+                            >
+                              Learn More
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
