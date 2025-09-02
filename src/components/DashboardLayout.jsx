@@ -6,6 +6,8 @@ import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getNavigationForRole } from '../config/navigation';
+import { iconMap } from './ui/icons';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -58,15 +60,8 @@ const DashboardLayout = ({ children }) => {
     </svg>
   );
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
-    { id: 'courses', label: 'Courses', icon: BookIcon, path: '/courses' },
-    { id: 'learning-paths', label: 'Learning Paths', icon: PathIcon, path: '/learning-paths' },
-    { id: 'exam', label: 'Take Exam', icon: ExamIcon, path: '/exam' },
-    { id: 'problems', label: 'Problem List', icon: CodeIcon, path: '/problems' },
-    { id: 'contests', label: 'Contests', icon: TrophyIcon, path: '/contests' },
-    { id: 'profile', label: 'Profile', icon: UserIcon, path: '/profile' },
-  ];
+  // Get role-based navigation items
+  const menuItems = getNavigationForRole(user?.role || 'student');
 
   const SearchIcon = ({ className }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +118,7 @@ const DashboardLayout = ({ children }) => {
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {menuItems.map((item) => {
-              const Icon = item.icon;
+              const Icon = iconMap[item.icon];
               // Active if current path starts with menu path (for nested routes)
               const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
               return (
@@ -132,6 +127,7 @@ const DashboardLayout = ({ children }) => {
                     variant={isActive ? "default" : "ghost"}
                     className={`w-full justify-start ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
                     onClick={() => navigate(item.path)}
+                    title={sidebarCollapsed ? item.label : ''}
                   >
                     <Icon className="w-5 h-5 shrink-0" />
                     {!sidebarCollapsed && (
@@ -198,10 +194,14 @@ const DashboardLayout = ({ children }) => {
                   <p className="text-sm font-medium">{user?.name}</p>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary" className="text-xs">
-                      {user?.rank}
+                      {user?.role === 'admin' ? user?.admin_profile?.rank : 
+                       user?.role === 'teacher' ? user?.teacher_profile?.designation :
+                       user?.role === 'student' ? user?.student_profile?.roll_number : 'User'}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {user?.rating}
+                      {user?.role === 'admin' ? user?.admin_profile?.rating : 
+                       user?.role === 'teacher' ? user?.teacher_profile?.department :
+                       user?.role === 'student' ? user?.student_profile?.department : 'New'}
                     </span>
                   </div>
                 </div>

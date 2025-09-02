@@ -68,6 +68,28 @@ const ProfilePage = () => {
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
+      
+      // For admin users, we already have the profile data from AuthContext
+      if (user?.role === 'admin') {
+        setProfileData(user);
+        // Create stats object from admin profile data
+        const adminStats = {
+          rank: user.admin_profile?.rank || 'Admin',
+          rating: user.admin_profile?.rating || 1000,
+          problemsSolved: user.admin_profile?.problems_solved || 0,
+          acceptanceRate: user.admin_profile?.acceptance_rate || 0,
+          totalSubmissions: user.admin_profile?.total_submissions || 0,
+          submissionStats: { easy: { solved: 0, total: 0 }, medium: { solved: 0, total: 0 }, hard: { solved: 0, total: 0 } },
+          skills: {},
+          badges: [],
+          ratingHistory: [],
+          activityData: []
+        };
+        setStatistics(adminStats);
+        return;
+      }
+
+      // For other roles, fetch from API
       const [profileResponse, statsResponse] = await Promise.all([
         profileAPI.getProfile(),
         profileAPI.getStatistics()
@@ -93,7 +115,14 @@ const ProfilePage = () => {
   };
 
   const initializeFormData = (userData) => {
-    const profile = userData.role === 'student' ? userData.student_profile : userData.teacher_profile;
+    let profile;
+    if (userData.role === 'student') {
+      profile = userData.student_profile;
+    } else if (userData.role === 'teacher') {
+      profile = userData.teacher_profile;
+    } else if (userData.role === 'admin') {
+      profile = userData.admin_profile;
+    }
     
     setFormData({
       name: userData.name || '',
