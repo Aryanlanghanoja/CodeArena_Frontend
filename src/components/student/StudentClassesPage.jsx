@@ -15,6 +15,7 @@ import {
 } from '../ui/dialog';
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 
 const StudentClassesPage = () => {
   const { user } = useAuth();
@@ -26,93 +27,43 @@ const StudentClassesPage = () => {
   const [isJoinClassDialogOpen, setIsJoinClassDialogOpen] = useState(false);
   const [joinCode, setJoinCode] = useState('');
 
-  // Mock data - replace with actual API calls
+  // Fetch real enrolled classes data from API
   useEffect(() => {
     const fetchEnrolledClasses = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setLoading(true);
+        const result = await classesService.listClasses();
         
-        const mockEnrolledClasses = [
-          {
-            id: 1,
-            name: 'CS101 - Introduction to Programming',
-            code: 'CS101-2024',
+        if (result.success) {
+          // Transform API data to match our component structure
+          const transformedClasses = result.data.classes.map(classItem => ({
+            id: classItem.join_code,
+            name: classItem.class_name,
+            code: classItem.join_code,
             teacher: {
-              name: 'Dr. Sarah Smith',
-              email: 'sarah.smith@university.edu',
+              name: classItem.creator?.name || 'Unknown Teacher',
+              email: classItem.creator?.email || 'unknown@university.edu',
               profilePhoto: null
             },
-            department: 'Computer Science',
-            progress: 75,
-            exams: 3,
-            completedExams: 2,
-            nextExam: '2024-01-25',
-            joinDate: '2024-01-15',
-            description: 'Introduction to programming concepts using Python',
+            department: 'Computer Science', // Default since backend doesn't have this field
+            progress: Math.min((classItem.student_count || 0) / 50 * 100, 100), // Mock progress based on student count
+            exams: classItem.exam_count || 0,
+            completedExams: Math.floor((classItem.exam_count || 0) * 0.7), // Mock completed exams
+            nextExam: null, // Backend doesn't have this field yet
+            joinDate: new Date(classItem.created_at).toISOString().split('T')[0],
+            description: classItem.description || '',
             status: 'active'
-          },
-          {
-            id: 2,
-            name: 'CS201 - Data Structures',
-            code: 'CS201-2024',
-            teacher: {
-              name: 'Prof. John Davis',
-              email: 'john.davis@university.edu',
-              profilePhoto: null
-            },
-            department: 'Computer Science',
-            progress: 60,
-            exams: 4,
-            completedExams: 2,
-            nextExam: '2024-01-20',
-            joinDate: '2024-01-10',
-            description: 'Advanced data structures and algorithms',
-            status: 'active'
-          },
-          {
-            id: 3,
-            name: 'MATH101 - Calculus I',
-            code: 'MATH101-2024',
-            teacher: {
-              name: 'Dr. Emily Brown',
-              email: 'emily.brown@university.edu',
-              profilePhoto: null
-            },
-            department: 'Mathematics',
-            progress: 85,
-            exams: 2,
-            completedExams: 1,
-            nextExam: '2024-01-18',
-            joinDate: '2024-01-12',
-            description: 'Fundamental concepts of calculus',
-            status: 'active'
-          },
-          {
-            id: 4,
-            name: 'ENG101 - Technical Writing',
-            code: 'ENG101-2024',
-            teacher: {
-              name: 'Prof. Lisa Johnson',
-              email: 'lisa.johnson@university.edu',
-              profilePhoto: null
-            },
-            department: 'English',
-            progress: 90,
-            exams: 2,
-            completedExams: 2,
-            nextExam: null,
-            joinDate: '2024-01-14',
-            description: 'Technical writing and communication skills',
-            status: 'active'
-          }
-        ];
-        
-        setEnrolledClasses(mockEnrolledClasses);
+          }));
+          
+          setEnrolledClasses(transformedClasses);
+        } else {
+          throw new Error(result.message || 'Failed to fetch enrolled classes');
+        }
       } catch (error) {
+        console.error('Error fetching enrolled classes:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch enrolled classes",
+          description: "Failed to fetch enrolled classes: " + error.message,
           variant: "destructive"
         });
       } finally {
@@ -140,41 +91,51 @@ const StudentClassesPage = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the real API to join class
+      const result = await classesService.joinClass(joinCode.trim());
       
-      // Mock successful join
-      const newClass = {
-        id: Date.now(),
-        name: 'New Class - ' + joinCode,
-        code: 'NEW-2024',
-        teacher: {
-          name: 'New Teacher',
-          email: 'teacher@university.edu',
-          profilePhoto: null
-        },
-        department: 'Computer Science',
-        progress: 0,
-        exams: 0,
-        completedExams: 0,
-        nextExam: null,
-        joinDate: new Date().toISOString().split('T')[0],
-        description: 'Newly joined class',
-        status: 'active'
-      };
-      
-      setEnrolledClasses(prevClasses => [newClass, ...prevClasses]);
-      setIsJoinClassDialogOpen(false);
-      setJoinCode('');
-      
-      toast({
-        title: "Success",
-        description: "Successfully joined the class!",
-      });
+      if (result.success) {
+        // Refresh the enrolled classes list
+        const refreshResult = await classesService.listClasses();
+        
+        if (refreshResult.success) {
+          const transformedClasses = refreshResult.data.classes.map(classItem => ({
+            id: classItem.join_code,
+            name: classItem.class_name,
+            code: classItem.join_code,
+            teacher: {
+              name: classItem.creator?.name || 'Unknown Teacher',
+              email: classItem.creator?.email || 'unknown@university.edu',
+              profilePhoto: null
+            },
+            department: 'Computer Science',
+            progress: Math.min((classItem.student_count || 0) / 50 * 100, 100),
+            exams: classItem.exam_count || 0,
+            completedExams: Math.floor((classItem.exam_count || 0) * 0.7),
+            nextExam: null,
+            joinDate: new Date(classItem.created_at).toISOString().split('T')[0],
+            description: classItem.description || '',
+            status: 'active'
+          }));
+          
+          setEnrolledClasses(transformedClasses);
+        }
+        
+        setIsJoinClassDialogOpen(false);
+        setJoinCode('');
+        
+        toast({
+          title: "Success",
+          description: `Successfully joined the class: ${result.data.class_name}`,
+        });
+      } else {
+        throw new Error(result.message || 'Failed to join class');
+      }
     } catch (error) {
+      console.error('Error joining class:', error);
       toast({
         title: "Error",
-        description: "Failed to join class. Please check the join code.",
+        description: "Failed to join class: " + error.message,
         variant: "destructive"
       });
     }
@@ -186,19 +147,25 @@ const StudentClassesPage = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the real API to leave class (remove member)
+      const result = await classesService.removeMember(classId, user.user_id);
       
-      setEnrolledClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
-      
-      toast({
-        title: "Success",
-        description: "Successfully left the class",
-      });
+      if (result.success) {
+        // Remove the class from the local state
+        setEnrolledClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
+        
+        toast({
+          title: "Success",
+          description: "Successfully left the class",
+        });
+      } else {
+        throw new Error(result.message || 'Failed to leave class');
+      }
     } catch (error) {
+      console.error('Error leaving class:', error);
       toast({
         title: "Error",
-        description: "Failed to leave class",
+        description: "Failed to leave class: " + error.message,
         variant: "destructive"
       });
     }

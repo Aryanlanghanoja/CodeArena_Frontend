@@ -6,6 +6,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -25,22 +26,45 @@ const TeacherDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Mock data - replace with actual API calls
-  const teacherStats = {
-    totalClasses: 4,
-    totalStudents: 156,
-    totalExams: 12,
-    activeExams: 3,
-    averageScore: 78.5,
-    questionsCreated: 45
-  };
+  // State for real-time data
+  const [teacherStats, setTeacherStats] = React.useState({
+    totalClasses: 0,
+    totalStudents: 0,
+    totalExams: 0,
+    activeExams: 0,
+    averageScore: 0,
+    questionsCreated: 0
+  });
+  const [classes, setClasses] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const classes = [
-    { id: 1, name: 'CS101 - Introduction to Programming', students: 42, exams: 3, joinCode: 'CS101-2024' },
-    { id: 2, name: 'CS201 - Data Structures', students: 38, exams: 4, joinCode: 'CS201-2024' },
-    { id: 3, name: 'CS301 - Algorithms', students: 35, exams: 2, joinCode: 'CS301-2024' },
-    { id: 4, name: 'CS401 - Software Engineering', students: 41, exams: 3, joinCode: 'CS401-2024' }
-  ];
+  // Fetch real-time data
+  React.useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch classes data using the service
+        const classesData = await classesService.getTeacherDashboardClasses();
+        setClasses(classesData.classes);
+        setTeacherStats(prev => ({
+          ...prev,
+          totalClasses: classesData.stats.totalClasses,
+          totalStudents: classesData.stats.totalStudents
+        }));
+
+        // TODO: Add other API calls for exams, questions, etc.
+        // For now, using mock data for other stats
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const upcomingExams = [
     { id: 1, title: 'Midterm Exam - Data Structures', class: 'CS201', date: '2024-01-15', time: '10:00 AM', duration: '2 hours' },
@@ -246,27 +270,51 @@ const TeacherDashboard = () => {
             <CardDescription>Manage your classes and students</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {classes.map((classItem) => (
-                <div key={classItem.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{classItem.name}</h4>
-                    <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                      <span>{classItem.students} students</span>
-                      <span>{classItem.exams} exams</span>
-                      <span>Code: {classItem.joinCode}</span>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading classes...</p>
+              </div>
+            ) : classes.length > 0 ? (
+              <div className="space-y-4">
+                {classes.map((classItem) => (
+                  <div key={classItem.join_code} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{classItem.class_name}</h4>
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                        <span>{classItem.student_count || 0} students</span>
+                        <span>{classItem.exam_count || 0} exams</span>
+                        <span>Code: {classItem.join_code}</span>
+                      </div>
                     </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/teacher/classes/${classItem.join_code}`)}
+                    >
+                      View
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/teacher/classes/${classItem.id}`)}
-                  >
-                    View
-                  </Button>
-                </div>
-              ))}
-            </div>
+                ))}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2"
+                  onClick={() => navigate('/teacher/classes')}
+                >
+                  Manage All Classes
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-3">No classes created yet</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/teacher/classes')}
+                >
+                  Create Your First Class
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

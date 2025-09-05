@@ -6,6 +6,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -25,16 +26,45 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Mock data - replace with actual API calls
-  const systemStats = {
-    totalUsers: 1250,
-    totalClasses: 45,
-    totalExams: 120,
-    activeUsers: 890,
-    systemHealth: 98,
-    judge0Workers: 5,
-    databaseConnections: 12
-  };
+  // State for real-time data
+  const [systemStats, setSystemStats] = React.useState({
+    totalUsers: 0,
+    totalClasses: 0,
+    totalExams: 0,
+    activeUsers: 0,
+    systemHealth: 0,
+    judge0Workers: 0,
+    databaseConnections: 0
+  });
+  const [recentClasses, setRecentClasses] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  // Fetch real-time data
+  React.useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch classes data using the service
+        const classesData = await classesService.getAdminDashboardClasses();
+        setRecentClasses(classesData.classes);
+        setSystemStats(prev => ({
+          ...prev,
+          totalClasses: classesData.total
+        }));
+
+        // TODO: Add other API calls for users, exams, system health
+        // For now, using mock data for other stats
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const userStats = {
     students: 980,
@@ -258,6 +288,57 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Classes */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Recent Classes</CardTitle>
+          <CardDescription>Latest classes created on the platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-sm text-muted-foreground mt-2">Loading classes...</p>
+            </div>
+          ) : recentClasses.length > 0 ? (
+            <div className="space-y-4">
+              {recentClasses.map((classItem) => (
+                <div key={classItem.join_code} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{classItem.class_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Created by: {classItem.creator?.name || 'Unknown'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Join Code: {classItem.join_code}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="secondary" className="text-xs">
+                      {classItem.student_count || 0} students
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(classItem.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <Button 
+                variant="outline" 
+                className="w-full mt-2"
+                onClick={() => navigate('/admin/classes')}
+              >
+                View All Classes
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              <p>No classes found</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* System Health & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
