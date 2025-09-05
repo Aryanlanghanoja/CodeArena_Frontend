@@ -35,6 +35,7 @@ import {
 } from '../ui/dropdown-menu';
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 
 const TeacherClassesPage = () => {
   const { user } = useAuth();
@@ -48,73 +49,40 @@ const TeacherClassesPage = () => {
   const [isJoinCodeDialogOpen, setIsJoinCodeDialogOpen] = useState(false);
   const [isStudentsDialogOpen, setIsStudentsDialogOpen] = useState(false);
 
-  // Mock data - replace with actual API calls
+
+
+  // Fetch real classes data from API
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setLoading(true);
+        const result = await classesService.listClasses();
         
-        const mockClasses = [
-          {
-            id: 1,
-            name: 'CS101 - Introduction to Programming',
-            code: 'CS101-2024',
-            department: 'Computer Science',
-            students: 42,
-            exams: 3,
-            status: 'active',
-            createdDate: '2024-01-15',
-            description: 'Introduction to programming concepts using Python',
-            joinCode: 'CS101-ABC123',
-            pendingStudents: 2
-          },
-          {
-            id: 2,
-            name: 'CS201 - Data Structures',
-            code: 'CS201-2024',
-            department: 'Computer Science',
-            students: 38,
-            exams: 4,
-            status: 'active',
-            createdDate: '2024-01-10',
-            description: 'Advanced data structures and algorithms',
-            joinCode: 'CS201-DEF456',
-            pendingStudents: 0
-          },
-          {
-            id: 3,
-            name: 'CS301 - Algorithms',
-            code: 'CS301-2024',
-            department: 'Computer Science',
-            students: 35,
-            exams: 2,
-            status: 'active',
-            createdDate: '2024-01-12',
-            description: 'Algorithm design and analysis',
-            joinCode: 'CS301-GHI789',
-            pendingStudents: 1
-          },
-          {
-            id: 4,
-            name: 'CS401 - Software Engineering',
-            code: 'CS401-2024',
-            department: 'Computer Science',
-            students: 41,
-            exams: 3,
-            status: 'inactive',
-            createdDate: '2024-01-08',
-            description: 'Software development methodologies and practices',
-            joinCode: 'CS401-JKL012',
-            pendingStudents: 0
-          }
-        ];
-        
-        setClasses(mockClasses);
+        if (result.success) {
+          // Transform API data to match our component structure
+          const transformedClasses = result.data.classes.map(classItem => ({
+            id: classItem.join_code, // Use join_code as ID
+            name: classItem.class_name,
+            code: classItem.join_code,
+            department: 'Computer Science', // Default since backend doesn't have this field
+            students: classItem.student_count || 0,
+            exams: classItem.exam_count || 0,
+            status: 'active', // Default since backend doesn't have status field
+            createdDate: new Date(classItem.created_at).toISOString().split('T')[0],
+            description: classItem.description || '',
+            joinCode: classItem.join_code,
+            pendingStudents: 0 // Default since backend doesn't have this field
+          }));
+          
+          setClasses(transformedClasses);
+        } else {
+          throw new Error(result.message || 'Failed to fetch classes');
+        }
       } catch (error) {
+        console.error('Error fetching classes:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch classes",
+          description: "Failed to fetch classes: " + error.message,
           variant: "destructive"
         });
       } finally {
@@ -132,31 +100,63 @@ const TeacherClassesPage = () => {
 
   const handleCreateClass = async (classData) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const newClass = {
-        id: Date.now(),
-        ...classData,
-        students: 0,
-        exams: 0,
-        status: 'active',
-        createdDate: new Date().toISOString().split('T')[0],
-        joinCode: `${classData.code}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        pendingStudents: 0
-      };
-      
-      setClasses(prevClasses => [newClass, ...prevClasses]);
-      setIsCreateClassDialogOpen(false);
-      
-      toast({
-        title: "Success",
-        description: "Class created successfully",
+      // Call the real API to create class
+      const result = await classesService.createClass({
+        class_name: classData.name,
+        description: classData.description
       });
+      
+      if (result.success) {
+        // Transform the API response to match our component structure
+        const newClass = {
+          id: result.data.class.join_code,
+          name: result.data.class.class_name,
+          code: result.data.class.join_code,
+          department: 'Computer Science', // Default since backend doesn't have this field
+          students: 0,
+          exams: 0,
+          status: 'active',
+          createdDate: new Date(result.data.class.created_at).toISOString().split('T')[0],
+          description: result.data.class.description || '',
+          joinCode: result.data.class.join_code,
+          pendingStudents: 0
+        };
+        
+        // Refresh the classes list to get the latest data
+        const refreshResult = await classesService.listClasses();
+        
+        if (refreshResult.success) {
+          const transformedClasses = refreshResult.data.classes.map(classItem => ({
+            id: classItem.join_code,
+            name: classItem.class_name,
+            code: classItem.join_code,
+            department: 'Computer Science',
+            students: classItem.student_count || 0,
+            exams: classItem.exam_count || 0,
+            status: 'active',
+            createdDate: new Date(classItem.created_at).toISOString().split('T')[0],
+            description: classItem.description || '',
+            joinCode: classItem.join_code,
+            pendingStudents: 0
+          }));
+          
+          setClasses(transformedClasses);
+        }
+        
+        setIsCreateClassDialogOpen(false);
+        
+        toast({
+          title: "Success",
+          description: `Class created successfully! Join code: ${result.data.join_code}`,
+        });
+      } else {
+        throw new Error(result.message || 'Failed to create class');
+      }
     } catch (error) {
+      console.error('Error creating class:', error);
       toast({
         title: "Error",
-        description: "Failed to create class",
+        description: "Failed to create class: " + error.message,
         variant: "destructive"
       });
     }
@@ -168,19 +168,24 @@ const TeacherClassesPage = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the real API to delete class
+      const result = await classesService.deleteClass(classId);
       
-      setClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
-      
-      toast({
-        title: "Success",
-        description: "Class deleted successfully",
-      });
+      if (result.success) {
+        setClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
+        
+        toast({
+          title: "Success",
+          description: "Class deleted successfully",
+        });
+      } else {
+        throw new Error(result.message || 'Failed to delete class');
+      }
     } catch (error) {
+      console.error('Error deleting class:', error);
       toast({
         title: "Error",
-        description: "Failed to delete class",
+        description: "Failed to delete class: " + error.message,
         variant: "destructive"
       });
     }
@@ -212,25 +217,34 @@ const TeacherClassesPage = () => {
 
   const regenerateJoinCode = async (classId) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the real API to regenerate join code
+      const result = await classesService.regenerateJoinCode(classId);
       
-      const newJoinCode = `${Math.random().toString(36).substr(2, 6).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      
-      setClasses(prevClasses => 
-        prevClasses.map(classItem => 
-          classItem.id === classId ? { ...classItem, joinCode: newJoinCode } : classItem
-        )
-      );
-      
-      toast({
-        title: "Success",
-        description: "Join code regenerated successfully",
-      });
+      if (result.success) {
+        const newJoinCode = result.data.new_join_code;
+        
+        // Update the class in our local state
+        setClasses(prevClasses => 
+          prevClasses.map(classItem => 
+            classItem.id === classId ? { ...classItem, joinCode: newJoinCode, code: newJoinCode } : classItem
+          )
+        );
+        
+        // Update the selected class if it's open
+        setSelectedClass(prev => prev ? { ...prev, joinCode: newJoinCode } : null);
+        
+        toast({
+          title: "Success",
+          description: `Join code regenerated successfully: ${newJoinCode}`,
+        });
+      } else {
+        throw new Error(result.message || 'Failed to regenerate join code');
+      }
     } catch (error) {
+      console.error('Error regenerating join code:', error);
       toast({
         title: "Error",
-        description: "Failed to regenerate join code",
+        description: "Failed to regenerate join code: " + error.message,
         variant: "destructive"
       });
     }
@@ -535,8 +549,6 @@ const TeacherClassesPage = () => {
 const CreateClassForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
-    department: '',
     description: ''
   });
 
@@ -553,24 +565,6 @@ const CreateClassForm = ({ onSubmit, onCancel }) => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., CS101 - Introduction to Programming"
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium">Class Code</label>
-        <Input
-          value={formData.code}
-          onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-          placeholder="e.g., CS101-2024"
-          required
-        />
-      </div>
-      <div>
-        <label className="text-sm font-medium">Department</label>
-        <Input
-          value={formData.department}
-          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-          placeholder="e.g., Computer Science"
           required
         />
       </div>

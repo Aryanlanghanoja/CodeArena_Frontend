@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeArena Auth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .token-display { word-break: break-all; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CodeArena Authentication Test</h1>
+        
+        <h2>1. Login Test</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="testteacher@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="password123" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        
+        <div id="loginResult" class="result" style="display: none;"></div>
+        
+        <h2>2. Test Classes API</h2>
+        <button id="testClassesBtn" onclick="testClassesAPI()" disabled>Test Classes API</button>
+        <div id="classesResult" class="result" style="display: none;"></div>
+        
+        <h2>3. Create Class Test</h2>
+        <form id="createClassForm">
+            <div class="form-group">
+                <label for="className">Class Name:</label>
+                <input type="text" id="className" value="Test Class from Frontend" required>
+            </div>
+            <div class="form-group">
+                <label for="classDescription">Description:</label>
+                <input type="text" id="classDescription" value="This is a test class created from the frontend" required>
+            </div>
+            <button type="submit">Create Class</button>
+        </form>
+        
+        <div id="createClassResult" class="result" style="display: none;"></div>
+        
+        <h2>4. Current Token</h2>
+        <div id="tokenDisplay" class="result">
+            <strong>No token available</strong>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentToken = result.data.token;
+                    localStorage.setItem('codeArenaToken', currentToken);
+                    
+                    document.getElementById('loginResult').innerHTML = `
+                        <div class="success">
+                            <strong>Login Successful!</strong><br>
+                            User: ${result.data.user.name}<br>
+                            Role: ${result.data.user.role}<br>
+                            Token: <span class="token-display">${currentToken}</span>
+                        </div>
+                    `;
+                    document.getElementById('loginResult').style.display = 'block';
+                    
+                    // Enable test button
+                    document.getElementById('testClassesBtn').disabled = false;
+                    
+                    // Update token display
+                    updateTokenDisplay();
+                } else {
+                    document.getElementById('loginResult').innerHTML = `
+                        <div class="error">
+                            <strong>Login Failed:</strong> ${result.message}
+                        </div>
+                    `;
+                    document.getElementById('loginResult').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                document.getElementById('loginResult').style.display = 'block';
+            }
+        });
+
+        // Test Classes API
+        async function testClassesAPI() {
+            if (!currentToken) {
+                alert('Please login first');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/classes', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                document.getElementById('classesResult').innerHTML = `
+                    <div class="success">
+                        <strong>Classes API Test Successful!</strong><br>
+                        Response: <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+                document.getElementById('classesResult').style.display = 'block';
+            } catch (error) {
+                document.getElementById('classesResult').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                document.getElementById('classesResult').style.display = 'block';
+            }
+        }
+
+        // Create Class form handler
+        document.getElementById('createClassForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentToken) {
+                alert('Please login first');
+                return;
+            }
+            
+            const className = document.getElementById('className').value;
+            const classDescription = document.getElementById('classDescription').value;
+            
+            try {
+                const response = await fetch('/api/classes', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        class_name: className,
+                        description: classDescription
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('createClassResult').innerHTML = `
+                        <div class="success">
+                            <strong>Class Created Successfully!</strong><br>
+                            Class Name: ${result.data.class.class_name}<br>
+                            Join Code: ${result.data.join_code}<br>
+                            Response: <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                    document.getElementById('createClassResult').style.display = 'block';
+                } else {
+                    document.getElementById('createClassResult').innerHTML = `
+                        <div class="error">
+                            <strong>Failed to Create Class:</strong> ${result.message}
+                        </div>
+                    `;
+                    document.getElementById('createClassResult').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('createClassResult').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                document.getElementById('createClassResult').style.display = 'block';
+            }
+        });
+
+        // Update token display
+        function updateTokenDisplay() {
+            const token = localStorage.getItem('codeArenaToken');
+            if (token) {
+                document.getElementById('tokenDisplay').innerHTML = `
+                    <div class="success">
+                        <strong>Token Available:</strong><br>
+                        <span class="token-display">${token}</span>
+                    </div>
+                `;
+            } else {
+                document.getElementById('tokenDisplay').innerHTML = `
+                    <div class="error">
+                        <strong>No token available</strong>
+                    </div>
+                `;
+            }
+        }
+
+        // Check for existing token on page load
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('codeArenaToken');
+            if (token) {
+                currentToken = token;
+                document.getElementById('testClassesBtn').disabled = false;
+                updateTokenDisplay();
+            }
+        });
+    </script>
+</body>
+</html>

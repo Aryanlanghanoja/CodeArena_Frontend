@@ -6,6 +6,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -25,25 +26,46 @@ const StudentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Mock data - replace with actual API calls
-  const studentStats = {
-    totalClasses: 5,
-    totalExams: 8,
-    completedExams: 6,
-    averageScore: 82.5,
-    problemsSolved: 45,
-    totalSubmissions: 67,
-    currentStreak: 7,
-    totalStudyHours: 24.5
-  };
+  // State for real-time data
+  const [studentStats, setStudentStats] = React.useState({
+    totalClasses: 0,
+    totalExams: 0,
+    completedExams: 0,
+    averageScore: 0,
+    problemsSolved: 0,
+    totalSubmissions: 0,
+    currentStreak: 0,
+    totalStudyHours: 0
+  });
+  const [enrolledClasses, setEnrolledClasses] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const enrolledClasses = [
-    { id: 1, name: 'CS101 - Introduction to Programming', teacher: 'Dr. Smith', progress: 75, nextExam: '2024-01-15' },
-    { id: 2, name: 'CS201 - Data Structures', teacher: 'Prof. Johnson', progress: 60, nextExam: '2024-01-20' },
-    { id: 3, name: 'MATH101 - Calculus I', teacher: 'Dr. Brown', progress: 85, nextExam: '2024-01-18' },
-    { id: 4, name: 'ENG101 - Technical Writing', teacher: 'Prof. Davis', progress: 90, nextExam: '2024-01-25' },
-    { id: 5, name: 'PHYS101 - Physics I', teacher: 'Dr. Wilson', progress: 45, nextExam: '2024-01-22' }
-  ];
+  // Fetch real-time data
+  React.useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch enrolled classes data using the service
+        const classesData = await classesService.getStudentDashboardClasses();
+        setEnrolledClasses(classesData.classes);
+        setStudentStats(prev => ({
+          ...prev,
+          totalClasses: classesData.stats.totalClasses
+        }));
+
+        // TODO: Add other API calls for exams, submissions, etc.
+        // For now, using mock data for other stats
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const upcomingExams = [
     { id: 1, title: 'Midterm Exam - Data Structures', class: 'CS201', date: '2024-01-15', time: '10:00 AM', duration: '2 hours', status: 'upcoming' },
@@ -246,33 +268,57 @@ const StudentDashboard = () => {
             <CardDescription>Your enrolled courses and progress</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {enrolledClasses.map((classItem) => (
-                <div key={classItem.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{classItem.name}</h4>
-                    <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                      <span>{classItem.teacher}</span>
-                      <span>Next: {classItem.nextExam}</span>
-                    </div>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Progress</span>
-                        <span>{classItem.progress}%</span>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading classes...</p>
+              </div>
+            ) : enrolledClasses.length > 0 ? (
+              <div className="space-y-4">
+                {enrolledClasses.map((classItem) => (
+                  <div key={classItem.join_code} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{classItem.class_name}</h4>
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
+                        <span>Teacher: {classItem.creator?.name || 'Unknown'}</span>
+                        <span>Join Code: {classItem.join_code}</span>
                       </div>
-                      <Progress value={classItem.progress} className="h-2" />
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>Students</span>
+                          <span>{classItem.student_count || 0}</span>
+                        </div>
+                        <Progress value={Math.min((classItem.student_count || 0) / 50 * 100, 100)} className="h-2" />
+                      </div>
                     </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/student/classes/${classItem.join_code}`)}
+                    >
+                      View
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/student/classes/${classItem.id}`)}
-                  >
-                    View
-                  </Button>
-                </div>
-              ))}
-            </div>
+                ))}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2"
+                  onClick={() => navigate('/student/classes')}
+                >
+                  View All Classes
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-3">Not enrolled in any classes yet</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/student/classes')}
+                >
+                  Join a Class
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
