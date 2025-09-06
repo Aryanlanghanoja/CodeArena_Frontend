@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import classesService from '../../services/classesService';
 import {
   ResponsiveContainer,
@@ -25,6 +25,7 @@ import {
 const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State for real-time data
   const [systemStats, setSystemStats] = React.useState({
@@ -64,7 +65,7 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [location.pathname]);
 
   const userStats = {
     students: 980,

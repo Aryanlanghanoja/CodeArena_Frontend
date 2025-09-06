@@ -22,6 +22,8 @@ const StudentClassesPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [enrolledClasses, setEnrolledClasses] = useState([]);
+  const [activeClasses, setActiveClasses] = useState([]);
+  const [pastClasses, setPastClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isJoinClassDialogOpen, setIsJoinClassDialogOpen] = useState(false);
@@ -52,10 +54,16 @@ const StudentClassesPage = () => {
             nextExam: null, // Backend doesn't have this field yet
             joinDate: new Date(classItem.created_at).toISOString().split('T')[0],
             description: classItem.description || '',
-            status: 'active'
+            status: classItem.status || 'active'
           }));
           
           setEnrolledClasses(transformedClasses);
+          
+          // Separate active and past classes
+          const active = transformedClasses.filter(classItem => classItem.status === 'active');
+          const past = transformedClasses.filter(classItem => classItem.status === 'inactive');
+          setActiveClasses(active);
+          setPastClasses(past);
         } else {
           throw new Error(result.message || 'Failed to fetch enrolled classes');
         }
@@ -74,7 +82,13 @@ const StudentClassesPage = () => {
     fetchEnrolledClasses();
   }, [toast]);
 
-  const filteredClasses = enrolledClasses.filter(classItem => {
+  const filteredActiveClasses = activeClasses.filter(classItem => {
+    return classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           classItem.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           classItem.teacher.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const filteredPastClasses = pastClasses.filter(classItem => {
     return classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
            classItem.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
            classItem.teacher.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -115,10 +129,16 @@ const StudentClassesPage = () => {
             nextExam: null,
             joinDate: new Date(classItem.created_at).toISOString().split('T')[0],
             description: classItem.description || '',
-            status: 'active'
+            status: classItem.status || 'active'
           }));
           
           setEnrolledClasses(transformedClasses);
+          
+          // Update separated active and past classes
+          const active = transformedClasses.filter(classItem => classItem.status === 'active');
+          const past = transformedClasses.filter(classItem => classItem.status === 'inactive');
+          setActiveClasses(active);
+          setPastClasses(past);
         }
         
         setIsJoinClassDialogOpen(false);
@@ -153,6 +173,8 @@ const StudentClassesPage = () => {
       if (result.success) {
         // Remove the class from the local state
         setEnrolledClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
+        setActiveClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
+        setPastClasses(prevClasses => prevClasses.filter(classItem => classItem.id !== classId));
         
         toast({
           title: "Success",
@@ -268,9 +290,12 @@ const StudentClassesPage = () => {
             />
           </div>
 
-          {/* Classes Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClasses.map((classItem) => (
+          {/* Active Classes Section */}
+          {filteredActiveClasses.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-green-700">Active Classes ({filteredActiveClasses.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredActiveClasses.map((classItem) => (
               <Card key={classItem.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -350,10 +375,77 @@ const StudentClassesPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {filteredClasses.length === 0 && (
+          {/* Past Classes Section */}
+          {filteredPastClasses.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-gray-600">Past Classes ({filteredPastClasses.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPastClasses.map((classItem) => (
+                  <Card key={classItem.id} className="hover:shadow-lg transition-shadow opacity-75">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{classItem.name}</CardTitle>
+                          <CardDescription className="mt-1">
+                            Code: {classItem.code} • {classItem.department}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="secondary">
+                          Past
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={classItem.teacher.profilePhoto} alt={classItem.teacher.name} />
+                          <AvatarFallback className="text-xs">
+                            {classItem.teacher.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="text-sm font-medium">{classItem.teacher.name}</div>
+                          <div className="text-xs text-muted-foreground">{classItem.teacher.email}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Exams:</span>
+                          <span>{classItem.exams}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Completed:</span>
+                          <span>{classItem.completedExams}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Joined:</span>
+                          <span>{new Date(classItem.joinDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <Button 
+                          variant="outline"
+                          onClick={() => navigate(`/student/classes/${classItem.id}`)}
+                          className="w-full"
+                        >
+                          View Class
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredActiveClasses.length === 0 && filteredPastClasses.length === 0 && (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📚</div>
               <h3 className="text-lg font-medium mb-2">No classes found</h3>
@@ -377,6 +469,10 @@ const StudentClassesPage = () => {
             <DialogTitle>Join a Class</DialogTitle>
             <DialogDescription>
               Enter the join code provided by your teacher to join their class.
+              <br />
+              <span className="text-sm text-muted-foreground">
+                Note: You cannot join classes that have been deactivated by the teacher.
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import classesService from '../../services/classesService';
 import {
   ResponsiveContainer,
@@ -25,6 +25,7 @@ import {
 const StudentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State for real-time data
   const [studentStats, setStudentStats] = React.useState({
@@ -65,7 +66,7 @@ const StudentDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [location.pathname]);
 
   const upcomingExams = [
     { id: 1, title: 'Midterm Exam - Data Structures', class: 'CS201', date: '2024-01-15', time: '10:00 AM', duration: '2 hours', status: 'upcoming' },

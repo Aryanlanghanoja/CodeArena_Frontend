@@ -225,6 +225,28 @@ class ClassesService {
     }
   }
 
+  // Update class status (active/inactive)
+  async updateClassStatus(joinCode, status) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${joinCode}/status`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ status })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to update class status');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error updating class status:', error);
+      throw error;
+    }
+  }
+
   // Delete a class
   async deleteClass(joinCode) {
     try {
