@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -7,7 +8,8 @@ import questionsService from '../../services/questionsService';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
 import { Play, Clock, Target, User, Calendar, Tag, Settings } from 'lucide-react';
 
-const QuestionDetail = ({ questionId, userRole = 'student' }) => {
+const QuestionDetail = ({ userRole = 'student' }) => {
+  const { questionId } = useParams();
   const { toast } = useToast();
   const [question, setQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
