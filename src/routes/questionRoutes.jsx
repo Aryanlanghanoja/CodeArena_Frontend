@@ -11,7 +11,6 @@ import StudentPractice from '../components/student/StudentPractice';
 import QuestionDetail from '../components/shared/QuestionDetail';
 import TestcaseManagement from '../components/teacher/TestcaseManagement';
 import CreateQuestionPage from '../components/teacher/CreateQuestionPage';
-import EditQuestionPage from '../components/teacher/EditQuestionPage';
 import ProblemSolvingPage from '../components/ProblemSolvingPage';
 
 // Teacher Question Bank Routes Component
@@ -21,7 +20,7 @@ export const TeacherQuestionBankRoutes = () => {
       <Route path="" element={<TeacherQuestionBank />} />
       <Route path="create" element={<CreateQuestionPage />} />
       <Route path=":questionId" element={<QuestionDetail userRole="teacher" />} />
-      <Route path=":questionId/edit" element={<EditQuestionPage />} />
+      <Route path=":questionId/edit" element={<div>Question Edit Form (To be implemented)</div>} />
       <Route path=":questionId/testcases" element={<TestcaseManagement />} />
     </Routes>
   );

@@ -6,7 +6,6 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
 import { useToast } from '../../hooks/use-toast';
 import questionsService from '../../services/questionsService';
 import { ArrowLeft, Save, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
@@ -21,7 +20,6 @@ const CreateQuestionPage = () => {
     description: '',
     markdown_content: '',
     difficulty: 'Easy',
-    is_visible: true,
     tags: '',
     constraints: '',
     testcases: []
@@ -277,15 +275,6 @@ const CreateQuestionPage = () => {
                   placeholder="e.g., arrays, sorting, algorithms"
                 />
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_visible"
-                checked={formData.is_visible}
-                onCheckedChange={(checked) => setFormData({...formData, is_visible: checked})}
-              />
-              <Label htmlFor="is_visible">Make question visible to students</Label>
             </div>
           </CardContent>
         </Card>
