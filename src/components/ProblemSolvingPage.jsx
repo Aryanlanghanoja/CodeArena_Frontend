@@ -28,9 +28,44 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
   const containerRef = useRef(null);
 
   const languages = [
-    { value: 'javascript', label: 'JavaScript', extension: javascript() },
-    { value: 'python', label: 'Python', extension: python() },
-    { value: 'cpp', label: 'C++', extension: cpp() }
+    // Popular Languages with CodeMirror support
+    { value: 'javascript', label: 'JavaScript (Node.js 12.14.0)', judge0Id: 63, extension: javascript() },
+    { value: 'python', label: 'Python (3.8.1)', judge0Id: 71, extension: python() },
+    { value: 'cpp', label: 'C++ (GCC 9.2.0)', judge0Id: 54, extension: cpp() },
+    { value: 'c', label: 'C (GCC 9.2.0)', judge0Id: 50, extension: cpp() }, // C uses C++ extension
+    
+    // Popular Languages without CodeMirror extensions (still supported by Judge0)
+    { value: 'java', label: 'Java (OpenJDK 13.0.1)', judge0Id: 62 },
+    { value: 'csharp', label: 'C# (Mono 6.6.0.161)', judge0Id: 51 },
+    { value: 'php', label: 'PHP (7.4.1)', judge0Id: 68 },
+    { value: 'ruby', label: 'Ruby (2.7.0)', judge0Id: 72 },
+    { value: 'go', label: 'Go (1.13.5)', judge0Id: 60 },
+    { value: 'rust', label: 'Rust (1.40.0)', judge0Id: 73 },
+    { value: 'swift', label: 'Swift (5.2.3)', judge0Id: 83 },
+    { value: 'kotlin', label: 'Kotlin (1.3.70)', judge0Id: 78 },
+    { value: 'scala', label: 'Scala (2.13.2)', judge0Id: 81 },
+    { value: 'perl', label: 'Perl (5.28.1)', judge0Id: 85 },
+    { value: 'haskell', label: 'Haskell (GHC 8.8.1)', judge0Id: 61 },
+    { value: 'lua', label: 'Lua (5.3.5)', judge0Id: 64 },
+    { value: 'r', label: 'R (4.0.0)', judge0Id: 80 },
+    { value: 'dart', label: 'Dart (2.7.2)', judge0Id: 69 },
+    { value: 'elixir', label: 'Elixir (1.9.4)', judge0Id: 57 },
+    { value: 'erlang', label: 'Erlang (OTP 22.2)', judge0Id: 58 },
+    { value: 'clojure', label: 'Clojure (1.10.1)', judge0Id: 86 },
+    { value: 'fsharp', label: 'F# (.NET Core SDK 3.1.202)', judge0Id: 87 },
+    { value: 'fortran', label: 'Fortran (GFortran 9.2.0)', judge0Id: 59 },
+    { value: 'ocaml', label: 'OCaml (4.09.0)', judge0Id: 79 },
+    { value: 'pascal', label: 'Pascal (FPC 3.0.4)', judge0Id: 67 },
+    { value: 'prolog', label: 'Prolog (GNU Prolog 1.4.5)', judge0Id: 70 },
+    { value: 'scheme', label: 'Scheme (Gauche 0.9.8)', judge0Id: 82 },
+    { value: 'vbnet', label: 'VB.NET (vbnc 0.0.0.5943)', judge0Id: 84 },
+    { value: 'bash', label: 'Bash (5.0.0)', judge0Id: 46 },
+    { value: 'powershell', label: 'PowerShell (6.2.3)', judge0Id: 89 },
+    { value: 'typescript', label: 'TypeScript (3.7.4)', judge0Id: 74 },
+    { value: 'assembly', label: 'Assembly (NASM 2.14.02)', judge0Id: 45 },
+    { value: 'cobol', label: 'COBOL (GnuCOBOL 2.2)', judge0Id: 77 },
+    { value: 'vim', label: 'Vim (8.1.2269)', judge0Id: 90 },
+    { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
   useEffect(() => {
@@ -333,7 +368,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
-              extensions={[languages.find(l => l.value === selectedLanguage)?.extension]}
+              extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '32em', width: '100%', fontSize: '14px' }}
               basicSetup={{

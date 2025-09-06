@@ -170,6 +170,21 @@ export const getNavigationForRole = (role) => {
 
 // Helper function to check if a user can access a specific route
 export const canAccessRoute = (userRole, routePath) => {
-  const route = navigationConfig.find(item => item.path === routePath);
-  return route ? route.visibleRoles.includes(userRole) : false;
+  // First try exact match
+  const exactRoute = navigationConfig.find(item => item.path === routePath);
+  if (exactRoute) {
+    return exactRoute.visibleRoles.includes(userRole);
+  }
+  
+  // If no exact match, check for parent routes (for nested routes)
+  const parentRoute = navigationConfig.find(item => {
+    return routePath.startsWith(item.path + '/') || routePath.startsWith(item.path + '/');
+  });
+  
+  if (parentRoute) {
+    return parentRoute.visibleRoles.includes(userRole);
+  }
+  
+  // Default to true for routes not in config (to allow dynamic routes)
+  return true;
 };

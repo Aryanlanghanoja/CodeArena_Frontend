@@ -285,7 +285,7 @@ const TeacherQuestionBankPage = () => {
             Create and manage coding questions for your exams.
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+        <Button onClick={() => navigate('/teacher/questions/create')}>
           Create New Question
         </Button>
       </div>
@@ -489,21 +489,8 @@ const TeacherQuestionBankPage = () => {
         </CardContent>
       </Card>
 
-      {/* Create Question Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Create New Question</DialogTitle>
-            <DialogDescription>
-              Create a new coding question with test cases.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateQuestionForm 
-            onSubmit={handleCreateQuestion} 
-            onCancel={() => setIsCreateDialogOpen(false)} 
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Create Question Dialog - Replaced with navigation to dedicated page */}
+      {/* The modal has been replaced with navigation to a dedicated question creation page */}
 
       {/* View Question Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>

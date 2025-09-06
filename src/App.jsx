@@ -33,10 +33,13 @@ import TeacherClassesPage from './components/teacher/TeacherClassesPage';
 import TeacherQuestionBankPage from './components/teacher/TeacherQuestionBankPage';
 import TeacherExamsPage from './components/teacher/TeacherExamsPage';
 
+// Question Bank Routes
+import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
+
 // Student components
 import StudentClassesPage from './components/student/StudentClassesPage';
 import StudentExamsPage from './components/student/StudentExamsPage';
-import StudentPracticePage from './components/student/StudentPracticePage';
+import StudentQuestionSolver from './components/student/StudentQuestionSolver';
 
 import { mockProblems, mockContests } from './data/mockData';
 
@@ -120,8 +123,29 @@ const AppContent = () => {
   }
 
   return (
-    <DashboardLayout>
-      <Routes>
+    <Routes>
+      {/* Full-screen routes (outside dashboard layout) */}
+      <Route 
+        path="/student/practice/:questionId" 
+        element={
+          <RoleBasedRoute allowedRoles={['student']}>
+            <StudentQuestionSolver />
+          </RoleBasedRoute>
+        } 
+      />
+      <Route 
+        path="/student/practice/:questionId/solve" 
+        element={
+          <RoleBasedRoute allowedRoles={['student']}>
+            <StudentQuestionSolver />
+          </RoleBasedRoute>
+        } 
+      />
+      
+      {/* Dashboard routes (inside dashboard layout) */}
+      <Route path="/*" element={
+        <DashboardLayout>
+          <Routes>
         {/* Main Dashboard */}
         <Route path="/dashboard" element={<DashboardPage />} />
         
@@ -172,18 +196,36 @@ const AppContent = () => {
           } 
         />
         <Route 
-          path="/teacher/questions" 
-          element={
-            <RoleBasedRoute allowedRoles={['teacher']}>
-              <TeacherQuestionBankPage />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
           path="/teacher/exams" 
           element={
             <RoleBasedRoute allowedRoles={['teacher']}>
               <TeacherExamsPage />
+            </RoleBasedRoute>
+          } 
+        />
+        
+        {/* Question Bank Routes */}
+        <Route 
+          path="/teacher/questions/*" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <TeacherQuestionBankRoutes />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/questions/*" 
+          element={
+            <RoleBasedRoute allowedRoles={['admin']}>
+              <AdminQuestionBankRoutes />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/student/practice" 
+          element={
+            <RoleBasedRoute allowedRoles={['student']}>
+              <StudentPracticeRoutes />
             </RoleBasedRoute>
           } 
         />
@@ -205,19 +247,13 @@ const AppContent = () => {
             </RoleBasedRoute>
           } 
         />
-        <Route 
-          path="/student/practice" 
-          element={
-            <RoleBasedRoute allowedRoles={['student']}>
-              <StudentPracticePage />
-            </RoleBasedRoute>
-          } 
-        />
         
-        {/* Default route */}
-        <Route path="*" element={<DashboardPage />} />
-      </Routes>
-    </DashboardLayout>
+            {/* Default route */}
+            <Route path="*" element={<DashboardPage />} />
+          </Routes>
+        </DashboardLayout>
+      } />
+    </Routes>
   );
 };
 
