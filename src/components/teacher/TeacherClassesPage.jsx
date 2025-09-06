@@ -67,7 +67,7 @@ const TeacherClassesPage = () => {
             department: 'Computer Science', // Default since backend doesn't have this field
             students: classItem.student_count || 0,
             exams: classItem.exam_count || 0,
-            status: 'active', // Default since backend doesn't have status field
+            status: classItem.status || 'active', // Use actual status from backend
             createdDate: new Date(classItem.created_at).toISOString().split('T')[0],
             description: classItem.description || '',
             joinCode: classItem.join_code,
@@ -193,23 +193,28 @@ const TeacherClassesPage = () => {
 
   const handleStatusChange = async (classId, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the real API to update class status
+      const result = await classesService.updateClassStatus(classId, newStatus);
       
-      setClasses(prevClasses => 
-        prevClasses.map(classItem => 
-          classItem.id === classId ? { ...classItem, status: newStatus } : classItem
-        )
-      );
-      
-      toast({
-        title: "Success",
-        description: `Class ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`,
-      });
+      if (result.success) {
+        setClasses(prevClasses => 
+          prevClasses.map(classItem => 
+            classItem.id === classId ? { ...classItem, status: newStatus } : classItem
+          )
+        );
+        
+        toast({
+          title: "Success",
+          description: `Class ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`,
+        });
+      } else {
+        throw new Error(result.message || 'Failed to update class status');
+      }
     } catch (error) {
+      console.error('Error updating class status:', error);
       toast({
         title: "Error",
-        description: "Failed to update class status",
+        description: "Failed to update class status: " + error.message,
         variant: "destructive"
       });
     }
@@ -448,6 +453,12 @@ const TeacherClassesPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => regenerateJoinCode(classItem.id)}>
                             Regenerate Join Code
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(classItem.id, classItem.status === 'active' ? 'inactive' : 'active')}
+                            className={classItem.status === 'active' ? 'text-orange-600' : 'text-green-600'}
+                          >
+                            {classItem.status === 'active' ? 'Deactivate Class' : 'Activate Class'}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteClass(classItem.id)}

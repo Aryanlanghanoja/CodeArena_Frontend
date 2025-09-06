@@ -35,6 +35,7 @@ import {
 } from '../ui/dropdown-menu';
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import classesService from '../../services/classesService';
 
 const AdminClassesPage = () => {
   const { user } = useAuth();
@@ -47,14 +48,54 @@ const AdminClassesPage = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
-  // Mock data - replace with actual API calls
+  // Fetch real classes data from API
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setLoading(true);
+        const result = await classesService.listClasses();
         
-        const mockClasses = [
+        if (result.success) {
+          // Transform API data to match our component structure
+          const transformedClasses = result.data.classes.map(classItem => ({
+            id: classItem.join_code,
+            name: classItem.class_name,
+            code: classItem.join_code,
+            teacher: {
+              id: classItem.created_by,
+              name: classItem.creator?.name || 'Unknown Teacher',
+              email: classItem.creator?.email || 'unknown@university.edu',
+              profilePhoto: null
+            },
+            department: 'Computer Science', // Default since backend doesn't have this field
+            students: classItem.student_count || 0,
+            exams: classItem.exam_count || 0,
+            status: classItem.status || 'active',
+            createdDate: new Date(classItem.created_at).toISOString().split('T')[0],
+            description: classItem.description || ''
+          }));
+          
+          setClasses(transformedClasses);
+        } else {
+          throw new Error(result.message || 'Failed to fetch classes');
+        }
+      } catch (error) {
+        console.error('Error fetching classes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch classes: " + error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClasses();
+  }, [toast]);
+
+  // Mock data for testing - remove when API is fully integrated
+  const mockClasses = [
           {
             id: 1,
             name: 'CS101 - Introduction to Programming',
@@ -141,21 +182,6 @@ const AdminClassesPage = () => {
             description: 'Technical writing and communication skills'
           }
         ];
-        
-        setClasses(mockClasses);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch classes",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClasses();
-  }, [toast]);
 
   const filteredClasses = classes.filter(classItem => {
     const matchesSearch = classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -191,23 +217,28 @@ const AdminClassesPage = () => {
 
   const handleStatusChange = async (classId, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the real API to update class status
+      const result = await classesService.updateClassStatus(classId, newStatus);
       
-      setClasses(prevClasses => 
-        prevClasses.map(classItem => 
-          classItem.id === classId ? { ...classItem, status: newStatus } : classItem
-        )
-      );
-      
-      toast({
-        title: "Success",
-        description: `Class ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`,
-      });
+      if (result.success) {
+        setClasses(prevClasses => 
+          prevClasses.map(classItem => 
+            classItem.id === classId ? { ...classItem, status: newStatus } : classItem
+          )
+        );
+        
+        toast({
+          title: "Success",
+          description: `Class ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`,
+        });
+      } else {
+        throw new Error(result.message || 'Failed to update class status');
+      }
     } catch (error) {
+      console.error('Error updating class status:', error);
       toast({
         title: "Error",
-        description: "Failed to update class status",
+        description: "Failed to update class status: " + error.message,
         variant: "destructive"
       });
     }
@@ -411,6 +442,12 @@ const AdminClassesPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(`/admin/classes/${classItem.id}/exams`)}>
                             View Exams
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(classItem.id, classItem.status === 'active' ? 'inactive' : 'active')}
+                            className={classItem.status === 'active' ? 'text-orange-600' : 'text-green-600'}
+                          >
+                            {classItem.status === 'active' ? 'Deactivate Class' : 'Activate Class'}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteClass(classItem.id)}
