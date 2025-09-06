@@ -290,6 +290,23 @@ class QuestionsService {
             throw error;
         }
     }
+
+    /**
+     * Get past submissions for a question
+     */
+    async getPastSubmissions(questionId) {
+        try {
+            const response = await fetch(`/api/judge0/submissions?question_id=${questionId}`, {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('Error getting past submissions:', error);
+            throw error;
+        }
+    }
 }
 
 // Create and export singleton instance

@@ -89,6 +89,7 @@ const EditQuestionPage = () => {
         {
           stdin: '',
           expected_output: '',
+          explanation: '',
           weight: 1.0,
           is_visible: true
         }
@@ -338,6 +339,16 @@ const EditQuestionPage = () => {
                       rows={3}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Explanation (Optional)</Label>
+                  <Textarea
+                    value={testcase.explanation || ''}
+                    onChange={(e) => updateTestcase(index, 'explanation', e.target.value)}
+                    placeholder="Enter explanation for this test case (optional)"
+                    rows={2}
+                  />
                 </div>
 
                 <div className="space-y-2">
