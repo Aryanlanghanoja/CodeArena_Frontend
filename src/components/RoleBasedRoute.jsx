@@ -37,16 +37,8 @@ const RoleBasedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   // Check if user can access the current route based on navigation config
-  const hasAccess = canAccessRoute(user.role, location.pathname);
-  console.log('Access check:', {
-    role: user.role,
-    path: location.pathname,
-    hasAccess,
-    allowedRoles
-  });
-
-  if (!hasAccess) {
-    console.log('Redirecting to dashboard - access denied');
+  if (!canAccessRoute(user.role, location.pathname)) {
+    // Redirect to dashboard if user doesn't have access to current route
     return <Navigate to="/dashboard" replace />;
   }
 

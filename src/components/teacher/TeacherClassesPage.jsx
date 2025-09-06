@@ -112,7 +112,7 @@ const TeacherClassesPage = () => {
           id: result.data.class.join_code,
           name: result.data.class.class_name,
           code: result.data.class.join_code,
-          department: 'Information and Communication Technology', // Default since backend doesn't have this field
+          department: 'Computer Science', // Default since backend doesn't have this field
           students: 0,
           exams: 0,
           status: 'active',
@@ -130,7 +130,7 @@ const TeacherClassesPage = () => {
             id: classItem.join_code,
             name: classItem.class_name,
             code: classItem.join_code,
-            department: 'Information and Communication Technology',
+            department: 'Computer Science',
             students: classItem.student_count || 0,
             exams: classItem.exam_count || 0,
             status: 'active',
@@ -371,19 +371,11 @@ const TeacherClassesPage = () => {
               <TableBody>
                 {filteredClasses.map((classItem) => (
                   <TableRow key={classItem.id}>
-                    <TableCell className="font-medium">
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-base font-medium"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          console.log('Navigating to class with join code:', classItem.joinCode);
-                          navigate(`/teacher/classes/${classItem.joinCode}`, { replace: false });
-                        }}
-                      >
-                        {classItem.name}
-                      </Button>
-                      <p className="text-sm text-muted-foreground">{classItem.code}</p>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{classItem.name}</div>
+                        <div className="text-sm text-muted-foreground">Code: {classItem.code}</div>
+                      </div>
                     </TableCell>
                     <TableCell>{classItem.department}</TableCell>
                     <TableCell>
