@@ -54,9 +54,126 @@ const TeacherExamsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
   const [selectedExam, setSelectedExam] = useState(null);
+  // Form state for creating new exam
+  const [examForm, setExamForm] = useState({
+    title: '',
+    classId: '',
+    startDate: '',
+    startTime: '',
+    duration: 60, // default 60 minutes
+    instructions: '',
+  });
+  const [formErrors, setFormErrors] = useState({});
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setExamForm(prev => ({
+      ...prev,
+      [id]: value
+    }));
+    
+    // Clear error when user types
+    if (formErrors[id]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [id]: ''
+      }));
+    }
+  };
+  
+  const handleSelectChange = (name, value) => {
+    setExamForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user selects
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+  
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!examForm.title.trim()) {
+      errors.title = 'Exam name is required';
+    }
+    
+    if (!examForm.classId) {
+      errors.classId = 'Please select a class';
+    }
+    
+    if (!examForm.startDate) {
+      errors.startDate = 'Start date is required';
+    }
+    
+    if (!examForm.startTime) {
+      errors.startTime = 'Start time is required';
+    }
+    
+    if (!examForm.duration) {
+      errors.duration = 'Duration is required';
+    } else if (examForm.duration < 1) {
+      errors.duration = 'Duration must be at least 1 minute';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  const handleCreateExamSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    // Format the exam data
+    const selectedClass = classes.find(cls => cls.id.toString() === examForm.classId);
+    const startDateTime = new Date(`${examForm.startDate}T${examForm.startTime}`);
+    const endDateTime = new Date(startDateTime.getTime() + examForm.duration * 60 * 1000);
+    
+    const newExam = {
+      title: examForm.title,
+      class: selectedClass,
+      startDate: examForm.startDate,
+      endDate: examForm.startDate, // Same as start date for single day exams
+      startTime: examForm.startTime,
+      endTime: endDateTime.toTimeString().substring(0, 5), // Format as HH:MM
+      duration: parseInt(examForm.duration, 10),
+      instructions: examForm.instructions || 'No instructions provided.',
+      status: 'draft',
+      totalMarks: 0, // Will be calculated based on questions
+      questions: 0, // Will be set when questions are added
+      questionsList: [],
+      allowedLanguages: ['python', 'java', 'cpp', 'javascript'],
+      totalStudents: selectedClass?.students || 0,
+      submittedStudents: 0,
+      averageScore: null,
+    };
+    
+    // Call the existing handleCreateExam function
+    handleCreateExam(newExam);
+    
+    // Reset form
+    setExamForm({
+      title: '',
+      classId: '',
+      startDate: '',
+      startTime: '',
+      duration: 60,
+      instructions: '',
+    });
+    setFormErrors({});
+  };
 
   // Mock data - replace with actual API calls
   useEffect(() => {
@@ -595,21 +712,175 @@ const TeacherExamsPage = () => {
       </Card>
 
       {/* Create Exam Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Create New Exam</DialogTitle>
-            <DialogDescription>
-              Create a new exam with questions from your question bank.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-4 text-center">
-            <p className="text-muted-foreground">Exam creation form will be implemented here.</p>
-            <Button onClick={() => setIsCreateDialogOpen(false)} className="mt-4">
-              Close
-            </Button>
-          </div>
-        </DialogContent>
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        setIsCreateDialogOpen(open);
+        if (!open) {
+          // Reset form when dialog is closed
+          setExamForm({
+            title: '',
+            classId: '',
+            startDate: '',
+            startTime: '',
+            duration: 60,
+            instructions: '',
+          });
+          setFormErrors({});
+        }
+      }}>
+        <form onSubmit={handleCreateExamSubmit}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Exam</DialogTitle>
+              <DialogDescription>
+                Set up a new exam with the following details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label htmlFor="title" className="text-right pt-2">
+                  Exam Name <span className="text-red-500">*</span>
+                </label>
+                <div className="col-span-3 space-y-1">
+                  <Input
+                    id="title"
+                    placeholder="Enter exam name"
+                    className={`${formErrors.title ? 'border-red-500' : ''}`}
+                    value={examForm.title}
+                    onChange={handleInputChange}
+                  />
+                  {formErrors.title && (
+                    <p className="text-sm text-red-500">{formErrors.title}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label htmlFor="classId" className="text-right pt-2">
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <div className="col-span-3 space-y-1">
+                  <Select 
+                    value={examForm.classId} 
+                    onValueChange={(value) => handleSelectChange('classId', value)}
+                  >
+                    <SelectTrigger className={`${formErrors.classId ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.length > 0 ? (
+                        classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id.toString()}>
+                            {cls.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          No classes available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.classId && (
+                    <p className="text-sm text-red-500">{formErrors.classId}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label className="text-right pt-2">
+                  Start Date & Time <span className="text-red-500">*</span>
+                </label>
+                <div className="col-span-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Input
+                        id="startDate"
+                        type="date"
+                        className={`w-full ${formErrors.startDate ? 'border-red-500' : ''}`}
+                        min={new Date().toISOString().split('T')[0]}
+                        value={examForm.startDate}
+                        onChange={handleInputChange}
+                      />
+                      {formErrors.startDate && (
+                        <p className="text-sm text-red-500">{formErrors.startDate}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Input
+                        id="startTime"
+                        type="time"
+                        className={`w-full ${formErrors.startTime ? 'border-red-500' : ''}`}
+                        value={examForm.startTime}
+                        onChange={handleInputChange}
+                      />
+                      {formErrors.startTime && (
+                        <p className="text-sm text-red-500">{formErrors.startTime}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label htmlFor="duration" className="text-right pt-2">
+                  Duration (minutes) <span className="text-red-500">*</span>
+                </label>
+                <div className="col-span-3 space-y-1">
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="1"
+                    placeholder="Enter duration in minutes"
+                    className={`${formErrors.duration ? 'border-red-500' : ''}`}
+                    value={examForm.duration}
+                    onChange={handleInputChange}
+                  />
+                  {formErrors.duration && (
+                    <p className="text-sm text-red-500">{formErrors.duration}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-start gap-4">
+                <label htmlFor="instructions" className="text-right pt-2">
+                  Instructions
+                </label>
+                <div className="col-span-3">
+                  <Textarea
+                    id="instructions"
+                    placeholder="Enter exam instructions (optional)"
+                    className="min-h-[100px]"
+                    value={examForm.instructions}
+                    onChange={handleInputChange}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Provide any specific instructions for the exam (optional)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                <span className="text-red-500">*</span> Required fields
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    setFormErrors({});
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create Exam
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </form>
       </Dialog>
 
       {/* View Exam Dialog */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,13 +32,12 @@ import AdminSystemHealthPage from './components/admin/AdminSystemHealthPage';
 import TeacherClassesPage from './components/teacher/TeacherClassesPage';
 import TeacherQuestionBankPage from './components/teacher/TeacherQuestionBankPage';
 import TeacherExamsPage from './components/teacher/TeacherExamsPage';
-
-// Question Bank Routes
-import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
+import ClassDetailsPage from './components/teacher/ClassDetailsPage';
 
 // Student components
 import StudentClassesPage from './components/student/StudentClassesPage';
 import StudentExamsPage from './components/student/StudentExamsPage';
+import StudentPractice from './components/student/StudentPractice';
 import StudentQuestionSolver from './components/student/StudentQuestionSolver';
 
 import { mockProblems, mockContests } from './data/mockData';
@@ -106,154 +105,164 @@ const AppContent = () => {
     navigate('/contests');
   };
 
-  // Layout logic for full screen problem-solving
+  // Full-screen routes (outside dashboard layout)
   if (location.pathname.startsWith('/problems/')) {
     return (
-      <Routes>
-        <Route
-          path="/problems/:problemId"
-          element={
-            <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
-              <ProblemSolvingRoute onBackToProblemList={handleBackToProblemList} />
-            </div>
-          }
-        />
-      </Routes>
+      <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <ProblemSolvingRoute onBackToProblemList={handleBackToProblemList} />
+      </div>
     );
   }
 
+  // Student practice routes (full screen)
+  if (location.pathname.startsWith('/student/practice/')) {
+    return (
+      <RoleBasedRoute allowedRoles={['student']}>
+        <StudentQuestionSolver />
+      </RoleBasedRoute>
+    );
+  }
+
+  // Main app routes (inside dashboard layout)
   return (
-    <Routes>
-      {/* Full-screen routes (outside dashboard layout) */}
-      <Route 
-        path="/student/practice/:questionId" 
-        element={
-          <RoleBasedRoute allowedRoles={['student']}>
-            <StudentQuestionSolver />
-          </RoleBasedRoute>
-        } 
-      />
-      <Route 
-        path="/student/practice/:questionId/solve" 
-        element={
-          <RoleBasedRoute allowedRoles={['student']}>
-            <StudentQuestionSolver />
-          </RoleBasedRoute>
-        } 
-      />
-      
-      {/* Dashboard routes (inside dashboard layout) */}
-      <Route path="/*" element={
-        <DashboardLayout>
-          <Routes>
-        {/* Main Dashboard */}
+    <DashboardLayout>
+      <Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
-        
-        {/* Legacy Routes */}
         <Route path="/problems" element={<ProblemListPage onProblemSelect={handleProblemSelect} />} />
         <Route path="/contests" element={<ContestsPage onContestSelect={handleContestSelect} />} />
-        <Route path="/contests/:contestId" element={<ContestDetailsRoute onBackToContests={handleBackToContests} onProblemSelect={handleProblemSelect} />} />
+        <Route 
+          path="/contests/:contestId" 
+          element={
+            <ContestDetailsRoute 
+              onBackToContests={handleBackToContests} 
+              onProblemSelect={handleProblemSelect} 
+            />
+          } 
+        />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/exam" element={<ExamPage onBackToDashboard={handleBackToDashboard} />} />
-        <Route path="/courses" element={<CoursesPage onCourseSelect={handleCourseSelect} onBackToDashboard={handleBackToDashboard} />} />
-        <Route path="/courses/:courseId" element={<CoursesPage onBackToDashboard={handleBackToDashboard} />} />
-        <Route path="/learning-paths" element={<LearningPathsPage onPathSelect={handlePathSelect} onBackToDashboard={handleBackToDashboard} />} />
-        <Route path="/learning-paths/:pathId" element={<LearningPathsPage onBackToDashboard={handleBackToDashboard} />} />
-        
+        <Route 
+          path="/courses" 
+          element={
+            <CoursesPage 
+              onCourseSelect={handleCourseSelect} 
+              onBackToDashboard={handleBackToDashboard} 
+            />
+          } 
+        />
+        <Route 
+          path="/courses/:courseId" 
+          element={<CoursesPage onBackToDashboard={handleBackToDashboard} />} 
+        />
+        <Route 
+          path="/learning-paths" 
+          element={
+            <LearningPathsPage 
+              onPathSelect={handlePathSelect} 
+              onBackToDashboard={handleBackToDashboard} 
+            />
+          } 
+        />
+        <Route 
+          path="/learning-paths/:pathId" 
+          element={<LearningPathsPage onBackToDashboard={handleBackToDashboard} />} 
+        />
         {/* Admin Routes */}
-        <Route 
-          path="/admin/users" 
-          element={
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <AdminUsersPage />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/classes" 
-          element={
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <AdminClassesPage />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/system-health" 
-          element={
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <AdminSystemHealthPage />
-            </RoleBasedRoute>
-          } 
-        />
+        <Route path="/admin">
+          <Route 
+            path="users" 
+            element={
+              <RoleBasedRoute allowedRoles={['admin']}>
+                <AdminUsersPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="classes" 
+            element={
+              <RoleBasedRoute allowedRoles={['admin']}>
+                <AdminClassesPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="system-health" 
+            element={
+              <RoleBasedRoute allowedRoles={['admin']}>
+                <AdminSystemHealthPage />
+              </RoleBasedRoute>
+            } 
+          />
+        </Route>
         
         {/* Teacher Routes */}
-        <Route 
-          path="/teacher/classes" 
-          element={
-            <RoleBasedRoute allowedRoles={['teacher']}>
-              <TeacherClassesPage />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/teacher/exams" 
-          element={
-            <RoleBasedRoute allowedRoles={['teacher']}>
-              <TeacherExamsPage />
-            </RoleBasedRoute>
-          } 
-        />
-        
-        {/* Question Bank Routes */}
-        <Route 
-          path="/teacher/questions/*" 
-          element={
-            <RoleBasedRoute allowedRoles={['teacher']}>
-              <TeacherQuestionBankRoutes />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/questions/*" 
-          element={
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <AdminQuestionBankRoutes />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/student/practice" 
-          element={
-            <RoleBasedRoute allowedRoles={['student']}>
-              <StudentPracticeRoutes />
-            </RoleBasedRoute>
-          } 
-        />
+        <Route path="/teacher">
+          <Route 
+            path="classes" 
+            element={
+              <RoleBasedRoute allowedRoles={['teacher']}>
+                <TeacherClassesPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="classes/:classId" 
+            element={
+              <RoleBasedRoute allowedRoles={['teacher']}>
+                <ClassDetailsPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="questions" 
+            element={
+              <RoleBasedRoute allowedRoles={['teacher']}>
+                <TeacherQuestionBankPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="exams" 
+            element={
+              <RoleBasedRoute allowedRoles={['teacher']}>
+                <TeacherExamsPage />
+              </RoleBasedRoute>
+            } 
+          />
+        </Route>
         
         {/* Student Routes */}
-        <Route 
-          path="/student/classes" 
-          element={
-            <RoleBasedRoute allowedRoles={['student']}>
-              <StudentClassesPage />
-            </RoleBasedRoute>
-          } 
-        />
-        <Route 
-          path="/student/exams" 
-          element={
-            <RoleBasedRoute allowedRoles={['student']}>
-              <StudentExamsPage />
-            </RoleBasedRoute>
-          } 
-        />
+        <Route path="/student">
+          <Route 
+            path="classes" 
+            element={
+              <RoleBasedRoute allowedRoles={['student']}>
+                <StudentClassesPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="exams" 
+            element={
+              <RoleBasedRoute allowedRoles={['student']}>
+                <StudentExamsPage />
+              </RoleBasedRoute>
+            } 
+          />
+          <Route 
+            path="practice" 
+            element={
+              <RoleBasedRoute allowedRoles={['student']}>
+                <StudentPractice />
+              </RoleBasedRoute>
+            } 
+          />
+        </Route>
         
-            {/* Default route */}
-            <Route path="*" element={<DashboardPage />} />
-          </Routes>
-        </DashboardLayout>
-      } />
-    </Routes>
+        {/* Default route - must be the last route */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </DashboardLayout>
   );
 };
 

@@ -59,7 +59,20 @@ export const navigationConfig = [
     path: '/teacher/classes',
     icon: 'ClassIcon',
     visibleRoles: ['teacher'],
-    description: 'Manage your classes and students'
+    description: 'Manage your classes and students',
+    // This allows access to all sub-routes like /teacher/classes/:classId
+    exact: false
+  },
+  // Explicit route for class details
+  {
+    id: 'teacher-class-details',
+    label: 'Class Details',
+    path: '/teacher/classes/:classId',
+    icon: 'ClassIcon',
+    visibleRoles: ['teacher'],
+    description: 'View and manage class details',
+    // Don't show in navigation menu
+    hidden: true
   },
   {
     id: 'teacher-questions',
@@ -165,26 +178,69 @@ export const navigationConfig = [
 
 // Helper function to get navigation items for a specific role
 export const getNavigationForRole = (role) => {
-  return navigationConfig.filter(item => item.visibleRoles.includes(role));
+  return navigationConfig.filter(item => 
+    item.visibleRoles.includes(role) && 
+    !item.hidden // Exclude hidden routes from navigation
+  );
 };
 
 // Helper function to check if a user can access a specific route
 export const canAccessRoute = (userRole, routePath) => {
-  // First try exact match
-  const exactRoute = navigationConfig.find(item => item.path === routePath);
-  if (exactRoute) {
-    return exactRoute.visibleRoles.includes(userRole);
-  }
+  console.log('\n=== Route Access Check ===');
+  console.log('User Role:', userRole);
+  console.log('Requested Path:', routePath);
   
-  // If no exact match, check for parent routes (for nested routes)
-  const parentRoute = navigationConfig.find(item => {
-    return routePath.startsWith(item.path + '/') || routePath.startsWith(item.path + '/');
+  // Try to find a matching route
+  const matchedRoute = navigationConfig.find(item => {
+    // Check exact match first
+    if (item.path === routePath) {
+      console.log('✓ Exact match found:', item.path);
+      return true;
+    }
+    
+    // Check for dynamic routes (e.g., /teacher/classes/:classId)
+    if (item.path.includes(':')) {
+      const pathParts = item.path.split('/');
+      const routeParts = routePath.split('/');
+      
+      if (pathParts.length === routeParts.length) {
+        const isMatch = pathParts.every((part, index) => {
+          return part.startsWith(':') || part === routeParts[index];
+        });
+        
+        if (isMatch) {
+          console.log(`✓ Dynamic route match: ${item.path} -> ${routePath}`);
+          return true;
+        }
+      }
+    }
+    
+    // Check for prefix match (e.g., /teacher/classes matches /teacher/classes/123)
+    if (routePath.startsWith(item.path) && 
+        (routePath === item.path || routePath[item.path.length] === '/')) {
+      console.log(`✓ Prefix match: ${item.path} is a prefix of ${routePath}`);
+      return true;
+    }
+    
+    return false;
   });
   
-  if (parentRoute) {
-    return parentRoute.visibleRoles.includes(userRole);
+  if (matchedRoute) {
+    const hasAccess = matchedRoute.visibleRoles.includes(userRole);
+    console.log('\nAccess Decision:', { 
+      'Matched Route': matchedRoute.path,
+      'Required Roles': matchedRoute.visibleRoles.join(', '),
+      'User Role': userRole,
+      'Access Granted': hasAccess ? '✅' : '❌'
+    });
+    return hasAccess;
   }
   
-  // Default to true for routes not in config (to allow dynamic routes)
-  return true;
+  console.log('\n❌ No matching route found for:', routePath);
+  console.log('Available routes:');
+  navigationConfig.forEach(route => {
+    console.log(`- ${route.path} (${route.visibleRoles.join(', ')})`);
+  });
+  
+  return false;
 };
