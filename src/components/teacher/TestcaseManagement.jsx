@@ -64,6 +64,7 @@ const TestcaseManagement = () => {
       id: `temp_${Date.now()}`,
       stdin: '',
       expected_output: '',
+      explanation: '',
       weight: 1.0,
       is_visible: true,
       isNew: true
@@ -327,21 +328,44 @@ const TestcaseManagement = () => {
                     </div>
                   </div>
 
+                  {/* Explanation Field */}
+                  <div>
+                    <Label htmlFor={`explanation-${index}`}>Explanation (Optional)</Label>
+                    <Textarea
+                      id={`explanation-${index}`}
+                      value={testcase.explanation || ''}
+                      onChange={(e) => updateTestcase(index, 'explanation', e.target.value)}
+                      placeholder="Enter explanation for this test case (optional)..."
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+
                   {/* Preview */}
                   {!showInputs[index] && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Input Preview</Label>
-                        <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
-                          {testcase.stdin || 'No input provided'}
-                        </pre>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Input Preview</Label>
+                          <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                            {testcase.stdin || 'No input provided'}
+                          </pre>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Expected Output Preview</Label>
+                          <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                            {testcase.expected_output || 'No output provided'}
+                          </pre>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Expected Output Preview</Label>
-                        <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
-                          {testcase.expected_output || 'No output provided'}
-                        </pre>
-                      </div>
+                      {testcase.explanation && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Explanation Preview</Label>
+                          <div className="bg-muted p-3 rounded-md text-sm">
+                            {testcase.explanation}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
