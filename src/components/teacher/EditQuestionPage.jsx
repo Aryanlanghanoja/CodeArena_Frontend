@@ -136,6 +136,8 @@ const EditQuestionPage = () => {
 
     try {
       setSaving(true);
+      console.log('Updating question with data:', formData);
+      console.log('Testcases being sent:', formData.testcases);
       const result = await questionsService.updateQuestion(questionId, formData);
       
       if (result.success) {
