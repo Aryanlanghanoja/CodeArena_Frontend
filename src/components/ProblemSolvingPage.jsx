@@ -16,7 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import questionsService from '../services/questionsService';
 import judge0Service from '../services/judge0Service';
 
-const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
+const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Back to Problems' }) => {
   const { isDarkMode } = useTheme();
   const { toast } = useToast();
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
@@ -33,6 +33,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
   const [lastRunResults, setLastRunResults] = useState(null);
   const [lastSubmitResults, setLastSubmitResults] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
+  const [cacheExpirationInfo, setCacheExpirationInfo] = useState(null);
   const resizerRef = useRef(null);
   const containerRef = useRef(null);
   const autoSaveTimeoutRef = useRef(null);
@@ -78,12 +79,30 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
-  // Auto-save functionality
+  // Auto-save functionality with 6-hour expiration
   const saveToLocalStorage = useCallback((questionId, language, code) => {
     try {
       const key = `code_${questionId}_${language}`;
-      localStorage.setItem(key, code);
+      const timestamp = Date.now();
+      const cacheData = {
+        code: code,
+        timestamp: timestamp,
+        expiresAt: timestamp + (6 * 60 * 60 * 1000) // 6 hours in milliseconds
+      };
+      localStorage.setItem(key, JSON.stringify(cacheData));
       setAutoSaveStatus('saved');
+      
+      // Update cache expiration info for display
+      const now = Date.now();
+      const timeLeft = cacheData.expiresAt - now;
+      const hoursLeft = Math.floor(timeLeft / (60 * 60 * 1000));
+      const minutesLeft = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+      
+      if (hoursLeft > 0) {
+        setCacheExpirationInfo(`${hoursLeft}h ${minutesLeft}m left`);
+      } else {
+        setCacheExpirationInfo(`${minutesLeft}m left`);
+      }
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
       setAutoSaveStatus('error');
@@ -93,11 +112,83 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
   const loadFromLocalStorage = useCallback((questionId, language) => {
     try {
       const key = `code_${questionId}_${language}`;
-      const savedCode = localStorage.getItem(key);
-      return savedCode || '';
+      const savedData = localStorage.getItem(key);
+      
+      if (!savedData) {
+        return '';
+      }
+      
+      // Try to parse as new format with timestamp
+      try {
+        const cacheData = JSON.parse(savedData);
+        
+        // Check if the cache has expired
+        if (cacheData.expiresAt && Date.now() > cacheData.expiresAt) {
+          // Cache expired, remove it and return empty string
+          localStorage.removeItem(key);
+          console.log(`Code cache expired for ${key}, removed from storage`);
+          return '';
+        }
+        
+        // Cache is still valid, return the code
+        // Update cache expiration info for display
+        const now = Date.now();
+        const timeLeft = cacheData.expiresAt - now;
+        const hoursLeft = Math.floor(timeLeft / (60 * 60 * 1000));
+        const minutesLeft = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+        
+        if (hoursLeft > 0) {
+          setCacheExpirationInfo(`${hoursLeft}h ${minutesLeft}m left`);
+        } else {
+          setCacheExpirationInfo(`${minutesLeft}m left`);
+        }
+        return cacheData.code || '';
+      } catch (parseError) {
+        // If parsing fails, it might be old format (just code string)
+        // Return the raw data for backward compatibility
+        return savedData;
+      }
     } catch (error) {
       console.error('Failed to load from localStorage:', error);
       return '';
+    }
+  }, []);
+
+  // Clean up expired cache entries
+  const cleanupExpiredCache = useCallback(() => {
+    try {
+      const keysToRemove = [];
+      
+      // Check all localStorage keys that start with 'code_'
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('code_')) {
+          try {
+            const savedData = localStorage.getItem(key);
+            if (savedData) {
+              const cacheData = JSON.parse(savedData);
+              if (cacheData.expiresAt && Date.now() > cacheData.expiresAt) {
+                keysToRemove.push(key);
+              }
+            }
+          } catch (parseError) {
+            // If it's not JSON format, it's old format - keep it for backward compatibility
+            continue;
+          }
+        }
+      }
+      
+      // Remove expired entries
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`Removed expired code cache: ${key}`);
+      });
+      
+      if (keysToRemove.length > 0) {
+        console.log(`Cleaned up ${keysToRemove.length} expired code cache entries`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up expired cache:', error);
     }
   }, []);
 
@@ -112,8 +203,11 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
     }, 2000); // Auto-save after 2 seconds of inactivity
   }, [saveToLocalStorage]);
 
-  // Load saved code on component mount
+  // Load saved code on component mount and cleanup expired cache
   useEffect(() => {
+    // Clean up expired cache entries on component mount
+    cleanupExpiredCache();
+    
     const questionId = problem.question_id || problem.id;
     if (questionId) {
       const savedCode = loadFromLocalStorage(questionId, selectedLanguage);
@@ -123,7 +217,69 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
         setCode(problem.starterCode?.[selectedLanguage] || '');
       }
     }
-  }, [problem.question_id, problem.id, selectedLanguage, problem.starterCode, loadFromLocalStorage]);
+  }, [problem.question_id, problem.id, selectedLanguage, problem.starterCode, loadFromLocalStorage, cleanupExpiredCache]);
+
+  // Periodic cleanup of expired cache entries (every hour)
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      cleanupExpiredCache();
+    }, 60 * 60 * 1000); // 1 hour in milliseconds
+
+    return () => clearInterval(cleanupInterval);
+  }, [cleanupExpiredCache]);
+
+  // Update cache expiration info display every minute
+  useEffect(() => {
+    const questionId = problem.question_id || problem.id;
+    if (questionId) {
+      const updateExpirationInfo = () => {
+        try {
+          const key = `code_${questionId}_${selectedLanguage}`;
+          const savedData = localStorage.getItem(key);
+          
+          if (!savedData) {
+            setCacheExpirationInfo(null);
+            return;
+          }
+          
+          try {
+            const cacheData = JSON.parse(savedData);
+            if (cacheData.expiresAt) {
+              const now = Date.now();
+              const timeLeft = cacheData.expiresAt - now;
+              
+              if (timeLeft > 0) {
+                const hoursLeft = Math.floor(timeLeft / (60 * 60 * 1000));
+                const minutesLeft = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+                
+                if (hoursLeft > 0) {
+                  setCacheExpirationInfo(`${hoursLeft}h ${minutesLeft}m left`);
+                } else {
+                  setCacheExpirationInfo(`${minutesLeft}m left`);
+                }
+              } else {
+                setCacheExpirationInfo(null);
+              }
+            } else {
+              setCacheExpirationInfo(null);
+            }
+          } catch (parseError) {
+            setCacheExpirationInfo(null);
+          }
+        } catch (error) {
+          setCacheExpirationInfo(null);
+        }
+      };
+      
+      // Update immediately
+      updateExpirationInfo();
+      
+      // Update every minute
+      const updateInterval = setInterval(updateExpirationInfo, 60 * 1000);
+      
+      return () => clearInterval(updateInterval);
+    }
+  }, [problem.question_id, problem.id, selectedLanguage]);
 
   // Auto-save when code changes
   useEffect(() => {
@@ -794,7 +950,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={onBackToProblemList}>
             <BackIcon className="w-4 h-4 mr-2" />
-            Back to Problems
+{backButtonText}
           </Button>
           <div>
             <h1 className="text-xl font-bold">{problem.title}</h1>
@@ -812,6 +968,11 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList }) => {
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <SaveIcon className="w-4 h-4" />
             <span className="capitalize">{autoSaveStatus}</span>
+            {cacheExpirationInfo && (
+              <span className="text-xs bg-muted px-2 py-1 rounded">
+                Cache expires in {cacheExpirationInfo}
+              </span>
+            )}
           </div>
           
           {/* Last Run Results */}

@@ -265,7 +265,7 @@ const TeacherQuestionBankPage = () => {
     hard: questions.filter(q => q.difficulty === 'Hard').length
   };
 
-  const topics = [...new Set(questions.map(q => q.topic))];
+  const topics = [...new Set(questions.map(q => q.topic).filter(topic => topic && topic.trim() !== ''))];
 
   if (loading) {
     return (
@@ -380,7 +380,7 @@ const TeacherQuestionBankPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Topics</SelectItem>
-                {topics.map(topic => (
+                {topics.filter(topic => topic && topic.trim() !== '').map(topic => (
                   <SelectItem key={topic} value={topic}>{topic}</SelectItem>
                 ))}
               </SelectContent>

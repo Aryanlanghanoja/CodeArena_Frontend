@@ -7,6 +7,7 @@ import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import classesService from '../../services/classesService';
+import learningPathService from '../../services/learningPathService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -37,6 +38,7 @@ const TeacherDashboard = () => {
     questionsCreated: 0
   });
   const [classes, setClasses] = React.useState([]);
+  const [learningPaths, setLearningPaths] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
   // Fetch real-time data
@@ -53,6 +55,14 @@ const TeacherDashboard = () => {
           totalClasses: classesData.stats.totalClasses,
           totalStudents: classesData.stats.totalStudents
         }));
+
+        // Fetch learning paths data
+        try {
+          const learningPathsData = await learningPathService.getAllLearningPaths();
+          setLearningPaths(learningPathsData.data || []);
+        } catch (error) {
+          console.log('No learning paths data available');
+        }
 
         // TODO: Add other API calls for exams, questions, etc.
         // For now, using mock data for other stats
@@ -319,6 +329,88 @@ const TeacherDashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Learning Paths */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>My Learning Paths</CardTitle>
+                <CardDescription>Create and manage structured learning content</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/learning-paths')}
+              >
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading learning paths...</p>
+              </div>
+            ) : learningPaths.length > 0 ? (
+              <div className="space-y-4">
+                {learningPaths.slice(0, 3).map((path) => (
+                  <div key={path.path_id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{path.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {path.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant={path.visibility === 'published' ? 'default' : 'secondary'} className="text-xs">
+                          {path.visibility}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {path.modules?.length || 0} modules
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {path.enrolled_students?.length || 0} students
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 ml-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/learning-paths/${path.path_id}`)}
+                      >
+                        Manage
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {learningPaths.length > 3 && (
+                  <div className="text-center pt-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => navigate('/learning-paths')}
+                    >
+                      View {learningPaths.length - 3} more learning paths
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="text-4xl mb-4">📚</div>
+                <p className="mb-4">You haven't created any learning paths yet.</p>
+                <Button onClick={() => navigate('/learning-paths/create')}>
+                  Create Learning Path
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Exams */}
         <Card>
           <CardHeader>

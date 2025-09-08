@@ -27,7 +27,9 @@ const TeacherQuestionBank = () => {
       setLoading(true);
       const result = await questionsService.getTeacherDashboardQuestions();
       if (result.success) {
-        setQuestions(result.data.questions);
+        // Handle paginated response structure
+        const questionsData = result.data?.data || result.data || [];
+        setQuestions(Array.isArray(questionsData) ? questionsData : []);
       } else {
         toast({
           title: "Error",
@@ -143,9 +145,9 @@ const TeacherQuestionBank = () => {
     });
   };
 
-  const getTotalQuestions = () => questions.length;
+  const getTotalQuestions = () => questions?.length || 0;
   const getQuestionsByDifficulty = (difficulty) => 
-    questions.filter(q => q.difficulty === difficulty).length;
+    questions?.filter(q => q.difficulty === difficulty).length || 0;
 
   return (
     <div className="space-y-6">
@@ -263,7 +265,7 @@ const TeacherQuestionBank = () => {
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : questions.length === 0 ? (
+          ) : !questions || questions.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-muted-foreground mb-4">
                 <PlusCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -277,7 +279,7 @@ const TeacherQuestionBank = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {questions.map((question) => (
+              {questions?.map((question) => (
                 <div
                   key={question.question_id}
                   className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"

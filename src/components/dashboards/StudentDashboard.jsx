@@ -7,6 +7,7 @@ import { Progress } from '../ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import classesService from '../../services/classesService';
+import learningPathService from '../../services/learningPathService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -39,6 +40,8 @@ const StudentDashboard = () => {
     totalStudyHours: 0
   });
   const [enrolledClasses, setEnrolledClasses] = React.useState([]);
+  const [learningPaths, setLearningPaths] = React.useState([]);
+  const [learningPathProgress, setLearningPathProgress] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   // Fetch real-time data
@@ -54,6 +57,18 @@ const StudentDashboard = () => {
           ...prev,
           totalClasses: classesData.stats.totalClasses
         }));
+
+        // Fetch learning paths data
+        try {
+          const learningPathsData = await learningPathService.getAllLearningPaths();
+          setLearningPaths(learningPathsData.data || []);
+          
+          // Fetch overall progress
+          const progressData = await learningPathService.getStudentOverallProgress();
+          setLearningPathProgress(progressData.data);
+        } catch (error) {
+          console.log('No learning paths data available');
+        }
 
         // TODO: Add other API calls for exams, submissions, etc.
         // For now, using mock data for other stats
@@ -317,6 +332,89 @@ const StudentDashboard = () => {
                   onClick={() => navigate('/student/classes')}
                 >
                   Join a Class
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Learning Paths */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Learning Paths</CardTitle>
+                <CardDescription>Your structured learning journeys</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/learning-paths')}
+              >
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading learning paths...</p>
+              </div>
+            ) : learningPaths.length > 0 ? (
+              <div className="space-y-4">
+                {learningPaths.slice(0, 3).map((path) => {
+                  const pathProgress = learningPathProgress?.learning_paths?.find(p => p.learning_path_id === path.path_id);
+                  const completionPercentage = pathProgress?.completion_percentage || 0;
+                  
+                  return (
+                    <div key={path.path_id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{path.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {path.description}
+                        </p>
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Progress</span>
+                            <span>{completionPercentage}%</span>
+                          </div>
+                          <Progress value={completionPercentage} className="h-2" />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3 ml-4">
+                        <Badge variant="outline" className="text-xs">
+                          {path.modules?.length || 0} modules
+                        </Badge>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/learning-paths/${path.path_id}`)}
+                        >
+                          Continue
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {learningPaths.length > 3 && (
+                  <div className="text-center pt-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => navigate('/learning-paths')}
+                    >
+                      View {learningPaths.length - 3} more learning paths
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="text-4xl mb-4">📚</div>
+                <p className="mb-4">You haven't joined any learning paths yet.</p>
+                <Button onClick={() => navigate('/learning-paths')}>
+                  Browse Learning Paths
                 </Button>
               </div>
             )}

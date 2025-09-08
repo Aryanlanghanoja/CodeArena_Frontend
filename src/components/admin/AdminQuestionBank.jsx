@@ -32,7 +32,9 @@ const AdminQuestionBank = () => {
       setLoading(true);
       const result = await questionsService.getAdminDashboardQuestions();
       if (result.success) {
-        setQuestions(result.data.questions);
+        // Handle paginated response structure
+        const questionsData = result.data?.data || result.data || [];
+        setQuestions(Array.isArray(questionsData) ? questionsData : []);
       } else {
         toast({
           title: "Error",
@@ -66,7 +68,7 @@ const AdminQuestionBank = () => {
   const handleSearch = async () => {
     const filters = {};
     if (searchTerm) filters.search = searchTerm;
-    if (difficultyFilter) filters.difficulty = difficultyFilter;
+    if (difficultyFilter && difficultyFilter !== 'all') filters.difficulty = difficultyFilter;
     
     await fetchQuestions(filters);
   };
@@ -203,12 +205,12 @@ const AdminQuestionBank = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+            <Select value={difficultyFilter || 'all'} onValueChange={setDifficultyFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by difficulty" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Difficulties</SelectItem>
+                <SelectItem value="all">All Difficulties</SelectItem>
                 <SelectItem value="Easy">Easy</SelectItem>
                 <SelectItem value="Medium">Medium</SelectItem>
                 <SelectItem value="Hard">Hard</SelectItem>
