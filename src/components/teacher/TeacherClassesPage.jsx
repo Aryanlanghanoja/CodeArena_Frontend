@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger 
 } from '../ui/dropdown-menu';
 import { useToast } from '../../hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import classesService from '../../services/classesService';
 
 const TeacherClassesPage = () => {
@@ -377,10 +377,10 @@ const TeacherClassesPage = () => {
                 {filteredClasses.map((classItem) => (
                   <TableRow key={classItem.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{classItem.name}</div>
+                      <Link to={`/teacher/classes/${classItem.id}`} className="hover:underline">
+                        <div className="font-medium text-primary hover:text-primary/80">{classItem.name}</div>
                         <div className="text-sm text-muted-foreground">Code: {classItem.code}</div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell>{classItem.department}</TableCell>
                     <TableCell>

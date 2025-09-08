@@ -43,6 +43,7 @@ import AdminSystemHealthPage from './components/admin/AdminSystemHealthPage';
 import TeacherClassesPage from './components/teacher/TeacherClassesPage';
 import TeacherQuestionBankPage from './components/teacher/TeacherQuestionBankPage';
 import TeacherExamsPage from './components/teacher/TeacherExamsPage';
+import ClassDetailsPage from './components/teacher/ClassDetailsPage';
 
 // Question Bank Routes
 import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
@@ -412,6 +413,14 @@ const AppContent = () => {
           element={
             <RoleBasedRoute allowedRoles={['teacher']}>
               <TeacherClassesPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/classes/:classId" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <ClassDetailsPage />
             </RoleBasedRoute>
           } 
         />
