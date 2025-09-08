@@ -78,12 +78,12 @@ export const navigationConfig = [
     description: 'Create and manage exams'
   },
   {
-    id: 'teacher-learning-paths',
+    id: 'learning-paths',
     label: 'Learning Paths',
-    path: '/teacher/learning-paths',
+    path: '/learning-paths',
     icon: 'PathIcon',
-    visibleRoles: ['teacher'],
-    description: 'Create structured learning content'
+    visibleRoles: ['teacher', 'student', 'admin'],
+    description: 'Create and follow structured learning content'
   },
   {
     id: 'teacher-leaderboard',
@@ -118,14 +118,6 @@ export const navigationConfig = [
     icon: 'CodeIcon',
     visibleRoles: ['student'],
     description: 'Solve coding problems'
-  },
-  {
-    id: 'student-learning',
-    label: 'Learning Paths',
-    path: '/student/learning-paths',
-    icon: 'PathIcon',
-    visibleRoles: ['student'],
-    description: 'Follow structured learning paths'
   },
   {
     id: 'student-progress',

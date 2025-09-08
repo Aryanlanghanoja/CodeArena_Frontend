@@ -1,314 +1,197 @@
-/**
- * Questions Service - Singleton service for question bank API interactions
- * Handles all question-related API calls with proper authentication and error handling
- */
+import api from './api';
 
-class QuestionsService {
-    constructor() {
-        this.token = localStorage.getItem('codeArenaToken');
-        this.API_BASE_URL = '/api/questions';
-    }
+const questionsService = {
+  // Get all questions with optional filters
+  getQuestions: async (params = {}) => {
+    console.log('questionsService.getQuestions called with params:', params);
+    const response = await api.get('/questions', { params });
+    console.log('questionsService.getQuestions response:', response.data);
+    return response.data;
+  },
 
-    /**
-     * Update the authentication token
-     */
-    updateToken(token) {
-        this.token = token;
-        localStorage.setItem('codeArenaToken', token);
-    }
+  // Get a specific question by ID
+  getQuestion: async (id) => {
+    const response = await api.get(`/questions/${id}`);
+    return response.data;
+  },
 
-    /**
-     * Get headers for API requests
-     */
-    getHeaders() {
-        this.token = localStorage.getItem('codeArenaToken');
-        if (!this.token) {
-            throw new Error('No authentication token found');
-        }
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.token}`,
-            'Accept': 'application/json'
-        };
-    }
+  // Create a new question
+  createQuestion: async (questionData) => {
+    const response = await api.post('/questions', questionData);
+    return response.data;
+  },
 
-    /**
-     * Handle API response
-     */
-    async handleResponse(response) {
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    }
+  // Update an existing question
+  updateQuestion: async (id, questionData) => {
+    const response = await api.put(`/questions/${id}`, questionData);
+    return response.data;
+  },
 
-    /**
-     * List questions with optional filters
-     */
-    async listQuestions(filters = {}) {
-        try {
-            const queryParams = new URLSearchParams();
-            
-            if (filters.difficulty) queryParams.append('difficulty', filters.difficulty);
-            if (filters.tags) queryParams.append('tags', filters.tags);
-            if (filters.search) queryParams.append('search', filters.search);
-            if (filters.page) queryParams.append('page', filters.page);
+  // Delete a question
+  deleteQuestion: async (id) => {
+    const response = await api.delete(`/questions/${id}`);
+    return response.data;
+  },
 
-            const url = `${this.API_BASE_URL}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
+  // Get questions by difficulty
+  getQuestionsByDifficulty: async (difficulty) => {
+    const response = await api.get('/questions', { 
+      params: { difficulty } 
+    });
+    return response.data;
+  },
 
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error listing questions:', error);
-            throw error;
-        }
-    }
+  // Get questions by tags
+  getQuestionsByTags: async (tags) => {
+    const response = await api.get('/questions', { 
+      params: { tags } 
+    });
+    return response.data;
+  },
 
-    /**
-     * Get a specific question by ID
-     */
-    async getQuestion(questionId) {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/${questionId}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
+  // Get questions by company tags
+  getQuestionsByCompanyTags: async (companyTags) => {
+    const response = await api.get('/questions', { 
+      params: { company_tags: companyTags } 
+    });
+    return response.data;
+  },
 
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error getting question:', error);
-            throw error;
-        }
-    }
+  // Search questions
+  searchQuestions: async (searchTerm, filters = {}) => {
+    const params = {
+      search: searchTerm,
+      ...filters
+    };
+    const response = await api.get('/questions', { params });
+    return response.data;
+  },
 
-    /**
-     * Create a new question
-     */
-    async createQuestion(questionData) {
-        try {
-            const response = await fetch(this.API_BASE_URL, {
-                method: 'POST',
-                headers: this.getHeaders(),
-                body: JSON.stringify(questionData)
-            });
+  // Get visible questions (for students)
+  getVisibleQuestions: async (filters = {}) => {
+    const params = {
+      is_visible: true,
+      ...filters
+    };
+    const response = await api.get('/questions', { params });
+    return response.data;
+  },
 
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error creating question:', error);
-            throw error;
-        }
-    }
+  // Get questions created by current user (for teachers)
+  getMyQuestions: async (filters = {}) => {
+    const response = await api.get('/questions', { params: filters });
+    return response.data;
+  },
 
-    /**
-     * Update an existing question
-     */
-    async updateQuestion(questionId, questionData) {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/${questionId}`, {
-                method: 'PUT',
-                headers: this.getHeaders(),
-                body: JSON.stringify(questionData)
-            });
-
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error updating question:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Delete a question
-     */
-    async deleteQuestion(questionId) {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/${questionId}`, {
-                method: 'DELETE',
-                headers: this.getHeaders()
-            });
-
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error deleting question:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Add a testcase to a question
-     */
-    async addTestcase(questionId, testcaseData) {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/${questionId}/testcases`, {
-                method: 'POST',
-                headers: this.getHeaders(),
-                body: JSON.stringify(testcaseData)
-            });
-
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error adding testcase:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get question statistics (Admin only)
-     */
-    async getStats() {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/stats`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
-
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error getting question stats:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get questions for admin dashboard
-     */
-    async getAdminDashboardQuestions() {
-        try {
-            const result = await this.listQuestions();
-            if (result.success) {
-                return {
-                    success: true,
-                    data: {
-                        questions: result.data.data || [],
-                        total: result.data.total || 0,
-                        currentPage: result.data.current_page || 1,
-                        lastPage: result.data.last_page || 1
-                    }
-                };
+  // Get all unique tags
+  getAllTags: async () => {
+    const response = await api.get('/questions');
+    // Handle paginated response structure
+    const questions = response.data?.data || response.data || [];
+    const tags = new Set();
+    const companyTags = new Set();
+    
+    if (Array.isArray(questions)) {
+      questions.forEach(question => {
+        if (question.tags) {
+          question.tags.split(',').forEach(tag => {
+            const trimmedTag = tag.trim();
+            if (trimmedTag) {
+              tags.add(trimmedTag);
             }
-            return result;
-        } catch (error) {
-            console.error('Error getting admin dashboard questions:', error);
-            throw error;
+          });
         }
-    }
-
-    /**
-     * Get questions for teacher dashboard
-     */
-    async getTeacherDashboardQuestions() {
-        try {
-            const result = await this.listQuestions();
-            if (result.success) {
-                return {
-                    success: true,
-                    data: {
-                        questions: result.data.data || [],
-                        total: result.data.total || 0,
-                        currentPage: result.data.current_page || 1,
-                        lastPage: result.data.last_page || 1
-                    }
-                };
+        if (question.company_tags) {
+          question.company_tags.split(',').forEach(tag => {
+            const trimmedTag = tag.trim();
+            if (trimmedTag) {
+              companyTags.add(trimmedTag);
             }
-            return result;
-        } catch (error) {
-            console.error('Error getting teacher dashboard questions:', error);
-            throw error;
+          });
         }
+      });
     }
-
-    /**
-     * Get questions for student practice
-     */
-    async getStudentPracticeQuestions(filters = {}) {
-        try {
-            const result = await this.listQuestions(filters);
-            if (result.success) {
+    
                 return {
-                    success: true,
-                    data: {
-                        questions: result.data.data || [],
-                        total: result.data.total || 0,
-                        currentPage: result.data.current_page || 1,
-                        lastPage: result.data.last_page || 1
-                    }
-                };
-            }
-            return result;
-        } catch (error) {
-            console.error('Error getting student practice questions:', error);
-            throw error;
+      tags: Array.from(tags).sort(),
+      companyTags: Array.from(companyTags).sort()
+    };
+  },
+
+  // Get all unique difficulties
+  getAllDifficulties: async () => {
+    const response = await api.get('/questions');
+    // Handle paginated response structure
+    const questions = response.data?.data || response.data || [];
+    const difficulties = new Set();
+    
+    if (Array.isArray(questions)) {
+      questions.forEach(question => {
+        if (question.difficulty && question.difficulty.trim()) {
+          difficulties.add(question.difficulty);
         }
+      });
     }
+    
+    return Array.from(difficulties).sort();
+  },
 
-    /**
-     * Search questions by text
-     */
-    async searchQuestions(searchTerm, filters = {}) {
-        try {
-            return await this.listQuestions({
-                ...filters,
-                search: searchTerm
-            });
-        } catch (error) {
-            console.error('Error searching questions:', error);
-            throw error;
-        }
-    }
+  // Teacher-specific methods
+  getTeacherDashboardQuestions: async () => {
+    const response = await api.get('/questions');
+    return response.data;
+  },
 
-    /**
-     * Filter questions by difficulty
-     */
-    async filterByDifficulty(difficulty, filters = {}) {
-        try {
-            return await this.listQuestions({
-                ...filters,
-                difficulty: difficulty
-            });
-        } catch (error) {
-            console.error('Error filtering questions by difficulty:', error);
-            throw error;
-        }
-    }
+  // Admin-specific methods
+  getAdminDashboardQuestions: async () => {
+    const response = await api.get('/questions');
+    return response.data;
+  },
 
-    /**
-     * Filter questions by tags
-     */
-    async filterByTags(tags, filters = {}) {
-        try {
-            return await this.listQuestions({
-                ...filters,
-                tags: Array.isArray(tags) ? tags.join(',') : tags
-            });
-        } catch (error) {
-            console.error('Error filtering questions by tags:', error);
-            throw error;
-        }
-    }
+  getStats: async () => {
+    const response = await api.get('/questions');
+    // Handle paginated response structure
+    const questions = response.data?.data || response.data || [];
+    
+    const stats = {
+      total: Array.isArray(questions) ? questions.length : 0,
+      byDifficulty: {
+        Easy: Array.isArray(questions) ? questions.filter(q => q.difficulty === 'Easy').length : 0,
+        Medium: Array.isArray(questions) ? questions.filter(q => q.difficulty === 'Medium').length : 0,
+        Hard: Array.isArray(questions) ? questions.filter(q => q.difficulty === 'Hard').length : 0
+      },
+      byVisibility: {
+        visible: Array.isArray(questions) ? questions.filter(q => q.is_visible).length : 0,
+        hidden: Array.isArray(questions) ? questions.filter(q => !q.is_visible).length : 0
+      }
+    };
+    
+    return { success: true, data: stats };
+  },
 
-    /**
-     * Get past submissions for a question
-     */
-    async getPastSubmissions(questionId) {
-        try {
-            const response = await fetch(`/api/judge0/submissions?question_id=${questionId}`, {
-                method: 'GET',
-                headers: this.getHeaders()
-            });
+  // Testcase management
+  addTestcase: async (questionId, testcaseData) => {
+    const response = await api.post(`/questions/${questionId}/testcases`, testcaseData);
+    return response.data;
+  },
 
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error getting past submissions:', error);
-            throw error;
-        }
-    }
-}
+  updateTestcase: async (questionId, testcaseId, testcaseData) => {
+    const response = await api.put(`/questions/${questionId}/testcases/${testcaseId}`, testcaseData);
+    return response.data;
+  },
 
-// Create and export singleton instance
-const questionsService = new QuestionsService();
+  deleteTestcase: async (questionId, testcaseId) => {
+    const response = await api.delete(`/questions/${questionId}/testcases/${testcaseId}`);
+    return response.data;
+  },
+
+  // Get past submissions for a question
+  getPastSubmissions: async (questionId) => {
+    const response = await api.get('/submissions', {
+      params: { question_id: questionId }
+    });
+    return response.data;
+  }
+};
+
 export default questionsService;

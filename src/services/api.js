@@ -13,8 +13,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('codeArenaToken');
+    console.log('API Request - Token from localStorage:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('API Request - Authorization header set:', config.headers.Authorization);
+    } else {
+      console.log('API Request - No token found in localStorage');
     }
     return config;
   },
@@ -25,8 +29,12 @@ api.interceptors.request.use(
 
 // Response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.status, response.config.url, response.data);
+    return response;
+  },
   (error) => {
+    console.error('API Error:', error.response?.status, error.config?.url, error.response?.data);
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('codeArenaToken');

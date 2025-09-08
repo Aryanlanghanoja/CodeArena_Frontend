@@ -27,9 +27,11 @@ const StudentPractice = () => {
   const fetchQuestions = async (filters = {}) => {
     try {
       setLoading(true);
-      const result = await questionsService.getStudentPracticeQuestions(filters);
+      const result = await questionsService.getVisibleQuestions(filters);
       if (result.success) {
-        setQuestions(result.data.questions);
+        // Handle paginated response structure
+        const questionsData = result.data?.data || result.data || [];
+        setQuestions(Array.isArray(questionsData) ? questionsData : []);
       } else {
         toast({
           title: "Error",
@@ -221,7 +223,7 @@ const StudentPractice = () => {
           <div className="flex gap-4">
             <div className="flex-1">
               <Input
-                placeholder="Search problems by title, description, or tags..."
+                placeholder="Search problems by title, description, tags, or companies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -282,13 +284,36 @@ const StudentPractice = () => {
                       <p className="text-muted-foreground mb-3 line-clamp-2">
                         {question.description}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Target className="h-4 w-4" />
-                          {question.testcases?.length || 0} test cases
-                        </span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Target className="h-4 w-4" />
+                            {question.testcases?.length || 0} test cases
+                          </span>
+                        </div>
+                        
+                        {/* Tags */}
                         {question.tags && (
-                          <span>Tags: {question.tags}</span>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="text-xs text-muted-foreground">Tags:</span>
+                            {question.tags.split(',').map((tag, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {tag.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Company Tags */}
+                        {question.company_tags && (
+                          <div className="flex flex-wrap gap-1">
+                            <span className="text-xs text-muted-foreground">Companies:</span>
+                            {question.company_tags.split(',').map((tag, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {tag.trim()}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -353,7 +378,7 @@ const StudentPractice = () => {
                 Use Filters
               </h4>
               <p className="text-sm text-muted-foreground">
-                Filter problems by difficulty and tags to focus on specific topics or skill levels.
+                Filter problems by difficulty to focus on specific skill levels. Search by tags, companies, or keywords.
               </p>
             </div>
           </div>

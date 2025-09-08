@@ -260,7 +260,7 @@ const AdminClassesPage = () => {
     totalExams: classes.reduce((sum, c) => sum + c.exams, 0)
   };
 
-  const departments = [...new Set(classes.map(c => c.department))];
+  const departments = [...new Set(classes.map(c => c.department).filter(dept => dept && dept.trim() !== ''))];
 
   if (loading) {
     return (
@@ -350,7 +350,7 @@ const AdminClassesPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dept => (
+                {departments.filter(dept => dept && dept.trim() !== '').map(dept => (
                   <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                 ))}
               </SelectContent>
