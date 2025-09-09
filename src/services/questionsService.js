@@ -191,6 +191,12 @@ const questionsService = {
       params: { question_id: questionId }
     });
     return response.data;
+  },
+
+  // Get submission details with testcase results
+  getSubmissionDetails: async (submissionId) => {
+    const response = await api.get(`/submissions/${submissionId}/details`);
+    return response.data;
   }
 };
 
