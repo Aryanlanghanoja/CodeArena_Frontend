@@ -15,6 +15,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { useTheme } from '../contexts/ThemeContext';
 import questionsService from '../services/questionsService';
 import judge0Service from '../services/judge0Service';
+import SubmissionTestcasesModal from './SubmissionTestcasesModal';
 
 const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Back to Problems' }) => {
   const { isDarkMode } = useTheme();
@@ -34,6 +35,8 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
   const [lastSubmitResults, setLastSubmitResults] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [cacheExpirationInfo, setCacheExpirationInfo] = useState(null);
+  const [testcasesModalOpen, setTestcasesModalOpen] = useState(false);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const resizerRef = useRef(null);
   const containerRef = useRef(null);
   const autoSaveTimeoutRef = useRef(null);
@@ -818,6 +821,16 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
     }
   };
 
+  const handleViewTestcases = (submissionId) => {
+    setSelectedSubmissionId(submissionId);
+    setTestcasesModalOpen(true);
+  };
+
+  const handleCloseTestcasesModal = () => {
+    setTestcasesModalOpen(false);
+    setSelectedSubmissionId(null);
+  };
+
   // Resizer functionality
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -940,6 +953,13 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
   const SaveIcon = ({ className }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+    </svg>
+  );
+
+  const EyeIcon = ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
   );
 
@@ -1264,6 +1284,21 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
                                 </div>
                               </div>
                             )}
+                            
+                            {/* View Testcases Button */}
+                            {submission.public_testcases > 0 && (
+                              <div className="flex justify-end pt-2 border-t">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewTestcases(submission.submission_id)}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <EyeIcon className="h-4 w-4 mr-2" />
+                                  View Testcases
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -1362,6 +1397,13 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
           </div>
         </div>
       </div>
+
+      {/* Submission Testcases Modal */}
+      <SubmissionTestcasesModal
+        submissionId={selectedSubmissionId}
+        isOpen={testcasesModalOpen}
+        onClose={handleCloseTestcasesModal}
+      />
     </div>
   );
 };
