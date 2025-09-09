@@ -27,6 +27,7 @@ import LearningPathTest from './components/learning-paths/LearningPathTest';
 import ModuleDebug from './components/learning-paths/ModuleDebug';
 import CreateModule from './components/learning-paths/CreateModule';
 import ReorderModules from './components/learning-paths/ReorderModules';
+import ReorderQuestions from './components/learning-paths/ReorderQuestions';
 import questionsService from './services/questionsService';
 import { Button } from './components/ui/button';
 
@@ -347,6 +348,14 @@ const AppContent = () => {
           element={
             <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
               <AddQuestionsToModule />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/learning-paths/:pathId/modules/:moduleId/reorder-questions" 
+          element={
+            <RoleBasedRoute allowedRoles={['admin', 'teacher']}>
+              <ReorderQuestions />
             </RoleBasedRoute>
           } 
         />
