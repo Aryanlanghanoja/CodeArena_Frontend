@@ -8,7 +8,7 @@ import { Progress } from '../ui/progress';
 import { useToast } from '../../hooks/use-toast';
 import learningPathService from '../../services/learningPathService';
 import { Skeleton } from '../ui/skeleton';
-import { ArrowLeft, BookOpen, Plus, Edit, Trash2, Play, CheckCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Plus, Edit, Trash2, Play, CheckCircle, ArrowUpDown } from 'lucide-react';
 
 const ModuleDetail = () => {
   const { pathId, moduleId } = useParams();
@@ -276,10 +276,21 @@ const ModuleDetail = () => {
               </CardDescription>
             </div>
             {canEdit && (
-              <Button onClick={() => navigate(`/learning-paths/${pathId}/modules/${moduleId}/add-questions`)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Questions
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => navigate(`/learning-paths/${pathId}/modules/${moduleId}/add-questions`)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Questions
+                </Button>
+                {module.questions && module.questions.length > 1 && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(`/learning-paths/${pathId}/modules/${moduleId}/reorder-questions`)}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    Reorder Questions
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>

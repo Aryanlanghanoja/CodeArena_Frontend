@@ -93,6 +93,13 @@ const learningPathService = {
     return response.data;
   },
 
+  reorderQuestions: async (pathId, moduleId, questionOrders) => {
+    const response = await api.post(`/learning-paths/${pathId}/modules/${moduleId}/questions/reorder`, {
+      question_orders: questionOrders
+    });
+    return response.data;
+  },
+
   // Resource operations
   getAllResources: async () => {
     const response = await api.get('/resources');
