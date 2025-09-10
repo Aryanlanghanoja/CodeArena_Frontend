@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { ArrowLeft, Clock, FileText, CheckCircle, AlertCircle, Play, Save, RefreshCw, Send, Eye, LayoutPanelLeft, History, Info, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, AlertCircle, Play, Save, RefreshCw, Send, Eye, LayoutPanelLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ScrollArea } from '../ui/scroll-area';
 import assignmentsService from '../../services/assignmentsService';
@@ -77,8 +77,6 @@ const SolveAssignmentPage = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
-  // Info modal (description + testcases)
-  const [infoOpen, setInfoOpen] = useState(false);
 
   // Supported languages
   const languages = [
@@ -438,7 +436,10 @@ const SolveAssignmentPage = () => {
   const getProgress = () => {
     if (!assignment?.questions) return 0;
     const total = assignment.questions.length;
-    const completed = Object.values(submissions).filter(s => s.submitted).length;
+    const completed = assignment.questions.filter(q => {
+      const submission = submissions[q.question_id];
+      return submission?.submitted && submission?.score >= 100;
+    }).length;
     return (completed / total) * 100;
   };
 
@@ -475,8 +476,8 @@ const SolveAssignmentPage = () => {
   const currentSubmission = currentQuestionId ? submissions[currentQuestionId] : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
+    <div className="assignment-page-container bg-background flex flex-col">
+      <div className="container mx-auto px-4 py-6 lg:py-8 max-w-none flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 lg:mb-8">
           <div className="flex items-center gap-3">
@@ -506,7 +507,18 @@ const SolveAssignmentPage = () => {
               </div>
             )}
             <div className="min-w-[220px] hidden md:block">
-              <div className="flex items-center justify-between text-sm mb-2"><span className="font-medium">Progress</span><span className="text-muted-foreground">{Math.round(getProgress())}%</span></div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="font-medium">Progress</span>
+                <span className="text-muted-foreground">
+                  {assignment?.questions ? 
+                    `${assignment.questions.filter(q => {
+                      const submission = submissions[q.question_id];
+                      return submission?.submitted && submission?.score >= 100;
+                    }).length}/${assignment.questions.length} completed` 
+                    : '0/0 completed'
+                  }
+                </span>
+              </div>
               <Progress value={getProgress()} className="h-2" />
             </div>
             <Button variant="outline" size="sm" onClick={() => setSidebarOpen(s => !s)} className="ml-2">
@@ -516,7 +528,7 @@ const SolveAssignmentPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6 lg:gap-8" ref={containerRef}>
+        <div className="grid grid-cols-12 gap-6 lg:gap-8 assignment-content-area" ref={containerRef}>
           {/* Questions Sidebar (hideable) */}
           {sidebarOpen && (
             <div className="col-span-12 lg:col-span-3">
@@ -533,36 +545,29 @@ const SolveAssignmentPage = () => {
                         const isCompleted = submission?.submitted;
                         const isCurrent = index === currentQuestionIndex;
                         return (
-                          <Button key={question.question_id} variant={isCurrent ? 'secondary' : 'ghost'} className={`w-full justify-start h-auto py-2 px-3 rounded-md ${isCurrent ? 'bg-secondary' : ''} ${isCompleted ? 'data-[completed=true]:bg-green-50 dark:data-[completed=true]:bg-green-900/20' : ''}`} data-completed={isCompleted} onClick={() => setCurrentQuestionIndex(index)}>
-                            <div className="flex items-center gap-3 w-full">
-                              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-semibold">{index + 1}</div>
-                              <div className="flex-1 min-w-0 text-left">
-                                <div className="text-sm font-medium truncate">{question.question_title}</div>
-                                <div className="text-xs text-muted-foreground truncate">{question.difficulty}</div>
+                          <div key={question.question_id} className="mb-2">
+                            <Button variant={isCurrent ? 'secondary' : 'ghost'} className={`w-full justify-start h-auto py-2 px-3 rounded-md ${isCurrent ? 'bg-secondary' : ''} ${isCompleted ? 'data-[completed=true]:bg-green-50 dark:data-[completed=true]:bg-green-900/20' : ''}`} data-completed={isCompleted} onClick={() => setCurrentQuestionIndex(index)}>
+                              <div className="flex items-center gap-3 w-full">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-semibold">{index + 1}</div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <div className="text-sm font-medium truncate">{question.question_title}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{question.difficulty}</div>
+                                </div>
+                                {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
                               </div>
-                              {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
-                            </div>
-                          </Button>
+                            </Button>
+                          </div>
                         );
                       })}
                     </div>
                   </ScrollArea>
-                  {/* Quick actions */}
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setInfoOpen(true)}>
-                      <Info className="w-4 h-4 mr-2" /> Info
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={fetchHistory} disabled={historyLoading}>
-                      <History className="w-4 h-4 mr-2" /> {historyLoading ? 'Loading' : 'History'}
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </div>
           )}
 
           {/* Compiler Area now uses inner identical component */}
-          <div className={sidebarOpen ? 'col-span-12 lg:col-span-9' : 'col-span-12'}>
+          <div className={`${sidebarOpen ? 'col-span-12 lg:col-span-9' : 'col-span-12'} h-full`}>
             {currentQuestion && (
               <AssignmentProblemSolvingInner
                 problem={{
@@ -581,50 +586,23 @@ const SolveAssignmentPage = () => {
                 classId={classId}
                 onBack={() => navigate(`/student/classes/${classId}`)}
                 backButtonText="Back to Assignment"
+                onSubmissionUpdate={(submissionData) => {
+                  setSubmissions(prev => ({
+                    ...prev,
+                    [submissionData.questionId]: {
+                      ...prev[submissionData.questionId],
+                      submitted: submissionData.submitted,
+                      score: submissionData.score,
+                      status: submissionData.status
+                    }
+                  }));
+                }}
               />
             )}
           </div>
         </div>
       </div>
 
-      {/* Info Modal: Description + Public Testcases */}
-      <Modal open={infoOpen} onClose={() => setInfoOpen(false)} title="Question Info & Testcases">
-        {currentQuestion ? (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Description</h3>
-              {currentQuestion.description ? (<div className="prose dark:prose-invert max-w-none"><ReactMarkdown>{currentQuestion.description}</ReactMarkdown></div>) : (<p className="text-muted-foreground">No description provided.</p>)}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Public Test Cases</h3>
-              {loadingTestcases ? (
-                <div className="text-sm text-muted-foreground">Loading test cases...</div>
-              ) : testcases.filter(tc => tc.is_visible === true).length === 0 ? (
-                <div className="text-sm text-muted-foreground">No public test cases available.</div>
-              ) : (
-                <div className="space-y-3">
-                  {testcases.filter(tc => tc.is_visible === true).map((tc, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <CardTitle className="text-base">Test Case {i + 1}</CardTitle>
-                        {tc.explanation && (<CardDescription className="text-sm">{tc.explanation}</CardDescription>)}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div><div className="text-xs text-muted-foreground mb-1">Input</div><pre className="bg-muted p-2 rounded whitespace-pre-wrap">{tc.stdin}</pre></div>
-                          <div><div className="text-xs text-muted-foreground mb-1">Expected</div><pre className="bg-muted p-2 rounded whitespace-pre-wrap">{tc.expected_output}</pre></div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">No question selected.</div>
-        )}
-      </Modal>
 
       {/* Submission Details Modal */}
       <AssignmentSubmissionTestcasesModal submissionId={selectedSubmissionId} isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} />

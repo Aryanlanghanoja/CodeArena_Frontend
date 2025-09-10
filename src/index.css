@@ -3,6 +3,91 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
+
+/* Ensure proper height constraints for flex layouts */
+.flex-scroll-container {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Fix scrolling issues in assignment page */
+.assignment-page-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.assignment-content-area {
+  height: calc(100vh - 140px); /* Subtract header height */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.assignment-tabs-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* Ensure TabsContent has proper scrolling */
+.assignment-tabs-content .space-y-6 {
+  min-height: min-content;
+}
+
+/* Custom textarea scrolling */
+.assignment-tabs-content textarea {
+  resize: vertical;
+  overflow-y: auto;
+}
+
+/* Output area scrolling */
+.assignment-tabs-content .bg-code {
+  resize: none;
+  overflow-y: auto;
+}
+
+/* CodeMirror editor scrolling */
+.cm-editor {
+  height: 100% !important;
+  overflow: auto !important;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+.cm-content {
+  min-height: 100% !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
