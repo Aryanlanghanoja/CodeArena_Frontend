@@ -17,7 +17,7 @@ import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
 import AssignmentSubmissionTestcasesModal from './AssignmentSubmissionTestcasesModal';
 
-const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack, backButtonText = 'Back to Questions' }) => {
+const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack, backButtonText = 'Back to Questions', onSubmissionUpdate }) => {
   const { isDarkMode } = useTheme();
   const { toast } = useToast();
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
@@ -26,7 +26,7 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [leftWidth, setLeftWidth] = useState(50);
+  const [leftWidth, setLeftWidth] = useState(40);
   const [testcases, setTestcases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
@@ -42,9 +42,44 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
   const autoSaveTimeoutRef = useRef(null);
 
   const languages = [
+    // Popular Languages with CodeMirror support
     { value: 'javascript', label: 'JavaScript (Node.js 12.14.0)', judge0Id: 63, extension: javascript() },
     { value: 'python', label: 'Python (3.8.1)', judge0Id: 71, extension: python() },
     { value: 'cpp', label: 'C++ (GCC 9.2.0)', judge0Id: 54, extension: cpp() },
+    { value: 'c', label: 'C (GCC 9.2.0)', judge0Id: 50, extension: cpp() },
+
+    // Popular Languages without CodeMirror extensions (still supported by Judge0)
+    { value: 'java', label: 'Java (OpenJDK 13.0.1)', judge0Id: 62 },
+    { value: 'csharp', label: 'C# (Mono 6.6.0.161)', judge0Id: 51 },
+    { value: 'php', label: 'PHP (7.4.1)', judge0Id: 68 },
+    { value: 'ruby', label: 'Ruby (2.7.0)', judge0Id: 72 },
+    { value: 'go', label: 'Go (1.13.5)', judge0Id: 60 },
+    { value: 'rust', label: 'Rust (1.40.0)', judge0Id: 73 },
+    { value: 'swift', label: 'Swift (5.2.3)', judge0Id: 83 },
+    { value: 'kotlin', label: 'Kotlin (1.3.70)', judge0Id: 78 },
+    { value: 'scala', label: 'Scala (2.13.2)', judge0Id: 81 },
+    { value: 'perl', label: 'Perl (5.28.1)', judge0Id: 85 },
+    { value: 'haskell', label: 'Haskell (GHC 8.8.1)', judge0Id: 61 },
+    { value: 'lua', label: 'Lua (5.3.5)', judge0Id: 64 },
+    { value: 'r', label: 'R (4.0.0)', judge0Id: 80 },
+    { value: 'dart', label: 'Dart (2.7.2)', judge0Id: 69 },
+    { value: 'elixir', label: 'Elixir (1.9.4)', judge0Id: 57 },
+    { value: 'erlang', label: 'Erlang (OTP 22.2)', judge0Id: 58 },
+    { value: 'clojure', label: 'Clojure (1.10.1)', judge0Id: 86 },
+    { value: 'fsharp', label: 'F# (.NET Core SDK 3.1.202)', judge0Id: 87 },
+    { value: 'fortran', label: 'Fortran (GFortran 9.2.0)', judge0Id: 59 },
+    { value: 'ocaml', label: 'OCaml (4.09.0)', judge0Id: 79 },
+    { value: 'pascal', label: 'Pascal (FPC 3.0.4)', judge0Id: 67 },
+    { value: 'prolog', label: 'Prolog (GNU Prolog 1.4.5)', judge0Id: 70 },
+    { value: 'scheme', label: 'Scheme (Gauche 0.9.8)', judge0Id: 82 },
+    { value: 'vbnet', label: 'VB.NET (vbnc 0.0.0.5943)', judge0Id: 84 },
+    { value: 'bash', label: 'Bash (5.0.0)', judge0Id: 46 },
+    { value: 'powershell', label: 'PowerShell (6.2.3)', judge0Id: 89 },
+    { value: 'typescript', label: 'TypeScript (3.7.4)', judge0Id: 74 },
+    { value: 'assembly', label: 'Assembly (NASM 2.14.02)', judge0Id: 45 },
+    { value: 'cobol', label: 'COBOL (GnuCOBOL 2.2)', judge0Id: 77 },
+    { value: 'vim', label: 'Vim (8.1.2269)', judge0Id: 90 },
+    { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
   // Auto-save with 6-hour expiration (same as ProblemSolvingPage)
@@ -360,6 +395,17 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
           results,
           timestamp: new Date().toISOString()
         });
+        
+        // Update parent component with submission status
+        if (onSubmissionUpdate) {
+          onSubmissionUpdate({
+            questionId: problem.question_id || problem.id,
+            submitted: true,
+            score: score,
+            status: success ? 'graded' : 'failed'
+          });
+        }
+        
         fetchSubmissions();
         if (success) {
           toast({ title: 'Submission Accepted! 🎉', description: `All ${total_testcases} test cases passed (${safeFormatNumber(score, 1)}% score).` });
@@ -407,7 +453,7 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
       if (containerRef.current) {
         const containerRect = containerRef.current.getBoundingClientRect();
         const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-        setLeftWidth(Math.max(20, Math.min(80, newLeftWidth)));
+        setLeftWidth(Math.max(25, Math.min(70, newLeftWidth)));
       }
     };
     const handleMouseUp = () => {
@@ -494,17 +540,17 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
   return (
     <div className="h-full flex flex-col">
       {/* Main Content */}
-      <div ref={containerRef} className="flex-1 flex relative">
+      <div ref={containerRef} className="flex-1 flex relative h-full">
         {/* Left Panel */}
-        <div style={{ width: `${leftWidth}%` }} className="flex flex-col bg-background">
-          <Tabs defaultValue="description" className="flex-1 flex flex-col">
-            <TabsList className="m-4 mb-0">
+        <div style={{ width: `${leftWidth}%` }} className="flex flex-col bg-background h-full">
+          <Tabs defaultValue="description" className="flex-1 flex flex-col h-full">
+            <TabsList className="m-4 mb-0 flex-shrink-0">
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="testcase">Test Case</TabsTrigger>
               <TabsTrigger value="submissions">Submissions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="description" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="description" className="assignment-tabs-content p-4 custom-scrollbar">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Problem Description</h3>
@@ -532,10 +578,60 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
                     {(problem.constraints || []).map((c, index) => (<li key={index}>{c}</li>))}
                   </ul>
                 </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Public Test Cases</h3>
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="text-muted-foreground">Loading test cases...</div>
+                    </div>
+                  ) : (
+                    <>
+                      {testcases.filter(tc => tc.is_visible === true).length > 0 ? (
+                        <div className="space-y-4">
+                          {testcases.filter(tc => tc.is_visible === true).map((testcase, index) => (
+                            <Card key={index}>
+                              <CardHeader>
+                                <CardTitle className="text-base">Test Case {index + 1}</CardTitle>
+                                {testcase.explanation && (
+                                  <CardDescription className="text-sm">
+                                    {testcase.explanation}
+                                  </CardDescription>
+                                )}
+                              </CardHeader>
+                              <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Input</label>
+                                    <pre className="bg-muted p-3 rounded-md text-sm mt-1 overflow-x-auto">
+                                      {testcase.stdin}
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-muted-foreground">Expected Output</label>
+                                    <pre className="bg-muted p-3 rounded-md text-sm mt-1 overflow-x-auto">
+                                      {testcase.expected_output}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <div>No public test cases available for this question.</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="testcase" className="assignment-tabs-content p-4 custom-scrollbar">
               <div className="space-y-6">
                 {loading ? (
                   <div className="text-center py-8"><div className="text-muted-foreground">Loading test cases...</div></div>
@@ -576,11 +672,11 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
                       <div className="space-y-4">
                         <div>
                           <label className="text-sm font-medium mb-2 block">Input</label>
-                          <Textarea placeholder="Enter your test input here..." value={customInput} onChange={(e) => setCustomInput(e.target.value)} className="min-h-[100px] font-mono" />
+                          <Textarea placeholder="Enter your test input here..." value={customInput} onChange={(e) => setCustomInput(e.target.value)} className="min-h-[100px] max-h-[200px] font-mono overflow-y-auto" />
                         </div>
                         <div>
                           <label className="text-sm font-medium mb-2 block">Output</label>
-                          <div className="bg-code p-4 rounded-lg min-h-[100px] font-mono text-sm whitespace-pre-wrap">{output || 'Run your code to see the output here...'}</div>
+                          <div className="bg-code p-4 rounded-lg min-h-[100px] max-h-[300px] font-mono text-sm whitespace-pre-wrap overflow-y-auto custom-scrollbar">{output || 'Run your code to see the output here...'}</div>
                         </div>
                       </div>
                     </div>
@@ -589,7 +685,7 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
               </div>
             </TabsContent>
 
-            <TabsContent value="submissions" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="submissions" className="assignment-tabs-content p-4 custom-scrollbar">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Your Submissions</h3>
@@ -644,11 +740,10 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
         <div ref={resizerRef} className="w-1 bg-border hover:bg-primary cursor-col-resize transition-colors" />
 
         {/* Right Panel */}
-        <div style={{ width: `${100 - leftWidth}%` }} className="flex flex-col">
-          <div className="p-4 border-b border-border bg-card">
+        <div style={{ width: `${100 - leftWidth}%` }} className="flex flex-col h-full">
+          <div className="p-4 border-b border-border bg-card flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <h3 className="font-semibold">Code Editor</h3>
                 <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
                   <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                   <SelectContent>{languages.map(lang => (<SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>))}</SelectContent>
@@ -661,14 +756,24 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
               </div>
             </div>
           </div>
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0">
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
               extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
-              style={{ height: '32em', width: '100%', fontSize: '14px' }}
-              basicSetup={{ lineNumbers: true, foldGutter: true, dropCursor: false, allowMultipleSelections: false, indentOnInput: true, bracketMatching: true, closeBrackets: true, autocompletion: true, highlightSelectionMatches: false }}
+              style={{ height: '100%', width: '100%', fontSize: '14px' }}
+              basicSetup={{ 
+                lineNumbers: true, 
+                foldGutter: true, 
+                dropCursor: false, 
+                allowMultipleSelections: false, 
+                indentOnInput: true, 
+                bracketMatching: true, 
+                closeBrackets: true, 
+                autocompletion: true, 
+                highlightSelectionMatches: false 
+              }}
             />
           </div>
         </div>
