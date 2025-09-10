@@ -45,13 +45,19 @@ import TeacherClassesPage from './components/teacher/TeacherClassesPage';
 import TeacherQuestionBankPage from './components/teacher/TeacherQuestionBankPage';
 import TeacherExamsPage from './components/teacher/TeacherExamsPage';
 import ClassDetailsPage from './components/teacher/ClassDetailsPage';
+import CreateAssignmentPage from './components/teacher/CreateAssignmentPage';
+import ViewAssignmentPage from './components/teacher/ViewAssignmentPage';
+import EditAssignmentPage from './components/teacher/EditAssignmentPage';
+import ViewSubmissionsPage from './components/teacher/ViewSubmissionsPage';
 
 // Question Bank Routes
 import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
 
 // Student components
 import StudentClassesPage from './components/student/StudentClassesPage';
+import StudentClassDetailsPage from './components/student/StudentClassDetailsPage';
 import StudentExamsPage from './components/student/StudentExamsPage';
+import SolveAssignmentPage from './components/student/SolveAssignmentPage';
 import StudentQuestionSolver from './components/student/StudentQuestionSolver';
 
 import { mockProblems, mockContests } from './data/mockData';
@@ -279,6 +285,16 @@ const AppContent = () => {
           </RoleBasedRoute>
         } 
       />
+      <Route 
+        path="/student/classes/:classId/assignments/:assignmentId/solve" 
+        element={
+          <RoleBasedRoute allowedRoles={['student']}>
+            <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
+              <SolveAssignmentPage />
+            </div>
+          </RoleBasedRoute>
+        } 
+      />
       
       {/* Dashboard routes (inside dashboard layout) */}
       <Route path="/*" element={
@@ -434,6 +450,38 @@ const AppContent = () => {
           } 
         />
         <Route 
+          path="/teacher/classes/:classId/create-assignment" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <CreateAssignmentPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/classes/:classId/assignments/:assignmentId" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <ViewAssignmentPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/classes/:classId/assignments/:assignmentId/edit" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <EditAssignmentPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/classes/:classId/assignments/:assignmentId/submissions" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <ViewSubmissionsPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
           path="/teacher/exams" 
           element={
             <RoleBasedRoute allowedRoles={['teacher']}>
@@ -477,6 +525,15 @@ const AppContent = () => {
             </RoleBasedRoute>
           } 
         />
+        <Route 
+          path="/student/classes/:classId" 
+          element={
+            <RoleBasedRoute allowedRoles={['student']}>
+              <StudentClassDetailsPage />
+            </RoleBasedRoute>
+          }
+        />
+        
         <Route 
           path="/student/exams" 
           element={

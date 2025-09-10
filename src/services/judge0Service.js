@@ -68,6 +68,92 @@ class Judge0Service {
     }
 
     /**
+     * Assignment run - execute code in assignment context (optionally scoped to visible tests)
+     */
+    async assignmentRun(data) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/assignments/run`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to run assignment code');
+            }
+            return result;
+        } catch (error) {
+            console.error('Error in assignment run:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Assignment submit - submit code for grading in assignment context
+     */
+    async assignmentSubmit(data) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/assignments/submit`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to submit assignment code');
+            }
+            return result;
+        } catch (error) {
+            console.error('Error in assignment submission:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get assignment submissions list (optionally filter by question)
+     */
+    async assignmentGetSubmissions({ assignment_id, class_id, question_id }) {
+        try {
+            const params = new URLSearchParams();
+            if (assignment_id) params.append('assignment_id', assignment_id);
+            if (class_id) params.append('class_id', class_id);
+            if (question_id) params.append('question_id', question_id);
+            const response = await fetch(`${this.API_BASE_URL}/assignments/submissions?${params.toString()}`, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to fetch assignment submissions');
+            }
+            return result;
+        } catch (error) {
+            console.error('Error fetching assignment submissions:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get details (including public testcase breakdown) for a specific assignment submission
+     */
+    async assignmentGetSubmissionDetails(submission_id) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/assignments/submissions/${submission_id}`, {
+                method: 'GET',
+                headers: this.getHeaders(),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to fetch submission details');
+            }
+            return result;
+        } catch (error) {
+            console.error('Error fetching submission details:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Get supported languages from Judge0
      */
     async getLanguages() {

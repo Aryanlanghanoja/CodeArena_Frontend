@@ -129,7 +129,7 @@ const DashboardLayout = ({ children }) => {
                     onClick={() => navigate(item.path)}
                     title={sidebarCollapsed ? item.label : ''}
                   >
-                    <Icon className="w-5 h-5 shrink-0" />
+                    <Icon className="w-6 h-6 shrink-0" />
                     {!sidebarCollapsed && (
                       <span className="ml-3">{item.label}</span>
                     )}
