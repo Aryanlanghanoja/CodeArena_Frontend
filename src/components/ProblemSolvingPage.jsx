@@ -964,7 +964,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center space-x-4">
@@ -1030,17 +1030,17 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
       </div>
 
       {/* Main Content */}
-      <div ref={containerRef} className="flex-1 flex relative">
+      <div ref={containerRef} className="flex-1 flex relative min-h-0 overflow-hidden">
         {/* Left Panel */}
-        <div style={{ width: `${leftWidth}%` }} className="flex flex-col bg-background">
-          <Tabs defaultValue="description" className="flex-1 flex flex-col">
+        <div style={{ width: `${leftWidth}%` }} className="flex flex-col bg-background min-h-0">
+          <Tabs defaultValue="description" className="flex-1 flex flex-col min-h-0">
             <TabsList className="m-4 mb-0">
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="testcase">Test Case</TabsTrigger>
               <TabsTrigger value="submissions">Submissions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="description" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="description" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Problem Description</h3>
@@ -1085,7 +1085,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               </div>
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="testcase" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar">
               <div className="space-y-6">
                 {/* Public Test Cases */}
                 {loading ? (
@@ -1163,7 +1163,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               </div>
             </TabsContent>
 
-            <TabsContent value="submissions" className="flex-1 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="submissions" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Your Submissions</h3>
@@ -1330,7 +1330,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
         />
 
         {/* Right Panel */}
-        <div style={{ width: `${100 - leftWidth}%` }} className="flex flex-col">
+        <div style={{ width: `${100 - leftWidth}%` }} className="flex flex-col min-h-0">
           {/* Code Editor Header */}
           <div className="p-4 border-b border-border bg-card">
             <div className="flex items-center justify-between">
@@ -1381,7 +1381,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               onChange={(value) => setCode(value)}
               extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
-              style={{ height: '32em', width: '100%', fontSize: '14px' }}
+              style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{
                 lineNumbers: true,
                 foldGutter: true,
