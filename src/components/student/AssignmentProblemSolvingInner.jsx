@@ -401,7 +401,7 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
           onSubmissionUpdate({
             questionId: problem.question_id || problem.id,
             submitted: true,
-            score: score,
+            score: score || 0,
             status: success ? 'graded' : 'failed'
           });
         }

@@ -36,14 +36,14 @@
 
 /* Fix scrolling issues in assignment page */
 .assignment-page-container {
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
 }
 
 .assignment-content-area {
-  height: calc(100vh - 140px); /* Subtract header height */
-  overflow: hidden;
+  height: calc(100dvh - 140px); /* Subtract header height */
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }

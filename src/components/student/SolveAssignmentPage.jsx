@@ -89,6 +89,37 @@ const SolveAssignmentPage = () => {
     fetchAssignment();
   }, [assignmentId]);
 
+  // Fetch all submissions for the assignment when it loads
+  useEffect(() => {
+    if (assignment?.questions && assignmentId) {
+      const fetchAllSubmissions = async () => {
+        try {
+          const response = await assignmentRunsService.listSubmissions({ 
+            assignmentId, 
+            classId 
+          });
+          if (response.success && response.data) {
+            // Group submissions by question_id
+            const submissionsByQuestion = {};
+            response.data.forEach(submission => {
+              submissionsByQuestion[submission.question_id] = {
+                submitted: true,
+                score: submission.score,
+                status: submission.status,
+                submission_id: submission.submission_id,
+                created_at: submission.created_at
+              };
+            });
+            setSubmissions(submissionsByQuestion);
+          }
+        } catch (error) {
+          console.error('Error fetching assignment submissions:', error);
+        }
+      };
+      fetchAllSubmissions();
+    }
+  }, [assignment, assignmentId, classId]);
+
   const fetchAssignment = async () => {
     try {
       setLoading(true);
@@ -438,9 +469,10 @@ const SolveAssignmentPage = () => {
     const total = assignment.questions.length;
     const completed = assignment.questions.filter(q => {
       const submission = submissions[q.question_id];
-      return submission?.submitted && submission?.score >= 100;
+      // Consider a question completed if it has a submission with score >= 100
+      return submission?.submitted && typeof submission?.score === 'number' && submission.score >= 100;
     }).length;
-    return (completed / total) * 100;
+    return total > 0 ? (completed / total) * 100 : 0;
   };
 
   const getDifficultyColor = (difficulty) => {
@@ -513,7 +545,7 @@ const SolveAssignmentPage = () => {
                   {assignment?.questions ? 
                     `${assignment.questions.filter(q => {
                       const submission = submissions[q.question_id];
-                      return submission?.submitted && submission?.score >= 100;
+                      return submission?.submitted && typeof submission?.score === 'number' && submission.score >= 100;
                     }).length}/${assignment.questions.length} completed` 
                     : '0/0 completed'
                   }
@@ -542,7 +574,7 @@ const SolveAssignmentPage = () => {
                     <div className="space-y-1">
                       {assignment.questions?.map((question, index) => {
                         const submission = submissions[question.question_id];
-                        const isCompleted = submission?.submitted;
+                        const isCompleted = submission?.submitted && typeof submission?.score === 'number' && submission.score >= 100;
                         const isCurrent = index === currentQuestionIndex;
                         return (
                           <div key={question.question_id} className="mb-2">
@@ -596,6 +628,8 @@ const SolveAssignmentPage = () => {
                       status: submissionData.status
                     }
                   }));
+                  // Also fetch fresh submissions to ensure we have the latest data
+                  fetchHistory();
                 }}
               />
             )}

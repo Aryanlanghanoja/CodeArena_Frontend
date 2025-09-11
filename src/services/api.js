@@ -1,8 +1,13 @@
 import axios from 'axios';
 
+// Determine API base URL from env or fallback to LAN IP
+const apiBaseURL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
+  ? import.meta.env.VITE_API_BASE_URL
+  : 'http://10.80.26.144:8000/api';
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
