@@ -33,7 +33,7 @@ const AuthPage = () => {
     password: '',
     confirmPassword: '',
     role: 'student',
-    department: 'Computer Science',
+    department: 'ICT',
     roll_number: '',
     year_of_study: 1,
     section: 'A',
