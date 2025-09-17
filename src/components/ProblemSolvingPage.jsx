@@ -664,12 +664,12 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
                 
                 if (testResult.is_visible) {
                   outputText += `Input: ${testResult.stdin}\n`;
-                  outputText += `Expected: ${testResult.expected_output}\n`;
+                  outputText += `Expected: \n${testResult.expected_output}\n`;
                   outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
                 } else {
                   outputText += `Input: [Hidden]\n`;
                   outputText += `Expected: [Hidden]\n`;
-                  outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
+                 // outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
                 }
                 
                 if (testResult.stderr) {

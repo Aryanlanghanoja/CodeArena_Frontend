@@ -41,6 +41,10 @@ import {
 } from '../ui/dropdown-menu';
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import examsService from '../../services/examsService';
+import classesService from '../../services/classesService';
+import questionsService from '../../services/questionsService';
+import { ScrollArea } from '../ui/scroll-area';
 
 const TeacherExamsPage = () => {
   const { user } = useAuth();
@@ -58,128 +62,52 @@ const TeacherExamsPage = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Mock data - replace with actual API calls
+  // Load data from services
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Simulate API calls
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockClasses = [
-          {
-            id: 1,
-            name: 'CS101 - Introduction to Programming',
-            code: 'CS101-2024',
-            students: 42,
-            status: 'active'
-          },
-          {
-            id: 2,
-            name: 'CS201 - Data Structures',
-            code: 'CS201-2024',
-            students: 38,
-            status: 'active'
-          }
-        ];
-
-        const mockQuestions = [
-          {
-            id: 1,
-            title: 'Two Sum',
-            difficulty: 'Easy',
-            topic: 'Arrays',
-            points: 20
-          },
-          {
-            id: 2,
-            title: 'Reverse Linked List',
-            difficulty: 'Medium',
-            topic: 'Linked Lists',
-            points: 30
-          },
-          {
-            id: 3,
-            title: 'Binary Tree Traversal',
-            difficulty: 'Hard',
-            topic: 'Trees',
-            points: 40
-          }
-        ];
-
-        const mockExams = [
-          {
-            id: 1,
-            title: 'Midterm Exam - Programming Basics',
-            class: mockClasses[0],
-            startDate: '2024-01-25',
-            endDate: '2024-01-25',
-            startTime: '10:00',
-            endTime: '12:00',
-            duration: 120, // minutes
-            totalMarks: 100,
-            questions: 5,
-            status: 'scheduled',
-            instructions: 'This is a coding exam. You will have 2 hours to complete 5 programming questions.',
-            allowedLanguages: ['python', 'java', 'cpp', 'javascript'],
-            totalStudents: 42,
-            submittedStudents: 0,
-            averageScore: null,
-            questionsList: [1, 2, 3]
-          },
-          {
-            id: 2,
-            title: 'Final Exam - Data Structures',
-            class: mockClasses[1],
-            startDate: '2024-02-15',
-            endDate: '2024-02-15',
-            startTime: '14:00',
-            endTime: '17:00',
-            duration: 180, // minutes
-            totalMarks: 150,
-            questions: 7,
-            status: 'draft',
-            instructions: 'Comprehensive exam covering all data structure topics.',
-            allowedLanguages: ['python', 'java', 'cpp'],
-            totalStudents: 38,
-            submittedStudents: 0,
-            averageScore: null,
-            questionsList: [2, 3]
-          },
-          {
-            id: 3,
-            title: 'Weekly Quiz - Arrays',
-            class: mockClasses[0],
-            startDate: '2024-01-22',
-            endDate: '2024-01-22',
-            startTime: '15:00',
-            endTime: '16:00',
-            duration: 60,
-            totalMarks: 50,
-            questions: 3,
-            status: 'completed',
-            instructions: 'Quick quiz on array operations.',
-            allowedLanguages: ['python', 'java'],
-            totalStudents: 42,
-            submittedStudents: 38,
-            averageScore: 78.5,
-            questionsList: [1]
-          }
-        ];
-        
-        setClasses(mockClasses);
-        setQuestions(mockQuestions);
-        setExams(mockExams);
+        setLoading(true);
+        const [classesRes, examsRes] = await Promise.all([
+          classesService.listClasses().catch(() => ({ success: false, data: { classes: [] } })),
+          examsService.listExams().catch(() => ({ success: false, data: [] })),
+        ]);
+        const classList = classesRes?.data?.classes?.map(c => ({ id: c.class_id || c.id || c.join_code, name: c.class_name || c.name, code: c.join_code || c.code, students: c.student_count })) || [];
+        setClasses(classList);
+        setExams((examsRes?.data || []).map(e => {
+          const id = e.id || e.exam_id;
+          const duration = e.duration_minutes ?? e.duration;
+          const totalMarks = e.total_marks ?? e.total_marks;
+          const qIds = e.question_ids || [];
+          const cls = classList.find(c => String(c.id) === String(e.class_id || e.class?.id));
+          return {
+            id,
+            title: e.title || 'Untitled',
+            class: cls || { name: e.class_name || 'Class', code: e.class_code || '-' },
+            startDate: e.start_date || e.startDate,
+            endDate: e.end_date || e.endDate,
+            startTime: e.start_time || e.startTime,
+            endTime: e.end_time || e.endTime,
+            duration: duration,
+            totalMarks: totalMarks,
+            questions: e.questions_count ?? (Array.isArray(qIds) ? qIds.length : 0),
+            status: e.status || 'draft',
+            instructions: e.instructions || '',
+            allowedLanguages: e.allowed_languages || ['python','cpp','javascript'],
+            totalStudents: e.total_students ?? 0,
+            submittedStudents: e.submitted_students ?? 0,
+            averageScore: e.average_score,
+            questionsList: qIds
+          };
+        }));
+        // Load a minimal questions list for selection form (if needed later)
+        const qs = await questionsService.getAll?.().catch(() => ({ success: false, data: [] }));
+        setQuestions(qs?.data || []);
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch data",
-          variant: "destructive"
-        });
+        toast({ title: 'Error', description: 'Failed to fetch data', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [toast]);
 
@@ -193,29 +121,31 @@ const TeacherExamsPage = () => {
 
   const handleCreateExam = async (examData) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const newExam = {
-        id: Date.now(),
-        ...examData,
-        totalStudents: examData.class.students,
-        submittedStudents: 0,
-        averageScore: null,
-        questionsList: examData.selectedQuestions
+      const payload = {
+        title: examData.title,
+        class_id: examData.classId,
+        start_date: examData.startDate,
+        end_date: examData.endDate,
+        start_time: examData.startTime,
+        end_time: examData.endTime,
+        duration_minutes: examData.duration,
+        total_marks: examData.totalMarks,
+        instructions: examData.instructions,
+        allowed_languages: examData.allowedLanguages,
+        question_ids: examData.selectedQuestions,
+        status: examData.status || 'draft',
       };
-      
-      setExams(prevExams => [newExam, ...prevExams]);
-      setIsCreateDialogOpen(false);
-      
-      toast({
-        title: "Success",
-        description: "Exam created successfully",
-      });
+      const res = await examsService.createExam(payload);
+      if (res.success) {
+        setIsCreateDialogOpen(false);
+        toast({ title: 'Success', description: 'Exam created successfully' });
+      } else {
+        throw new Error(res.message || 'Failed to create exam');
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create exam",
+        description: error.message || "Failed to create exam",
         variant: "destructive"
       });
     }
@@ -223,25 +153,14 @@ const TeacherExamsPage = () => {
 
   const handleUpdateExam = async (examId, examData) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setExams(prevExams => 
-        prevExams.map(exam => 
-          exam.id === examId ? { ...exam, ...examData } : exam
-        )
-      );
-      
+      const res = await examsService.updateExam(examId, examData);
+      if (!res.success) throw new Error(res.message || 'Failed to update exam');
       setIsEditDialogOpen(false);
-      
-      toast({
-        title: "Success",
-        description: "Exam updated successfully",
-      });
+      toast({ title: 'Success', description: 'Exam updated successfully' });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update exam",
+        description: error.message || "Failed to update exam",
         variant: "destructive"
       });
     }
@@ -253,19 +172,14 @@ const TeacherExamsPage = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      const res = await examsService.deleteExam(examId);
+      if (!res.success) throw new Error(res.message || 'Failed to delete exam');
       setExams(prevExams => prevExams.filter(exam => exam.id !== examId));
-      
-      toast({
-        title: "Success",
-        description: "Exam deleted successfully",
-      });
+      toast({ title: 'Success', description: 'Exam deleted successfully' });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete exam",
+        description: error.message || "Failed to delete exam",
         variant: "destructive"
       });
     }
@@ -273,23 +187,14 @@ const TeacherExamsPage = () => {
 
   const handleStatusChange = async (examId, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setExams(prevExams => 
-        prevExams.map(exam => 
-          exam.id === examId ? { ...exam, status: newStatus } : exam
-        )
-      );
-      
-      toast({
-        title: "Success",
-        description: `Exam ${newStatus === 'scheduled' ? 'scheduled' : 'saved as draft'} successfully`,
-      });
+      const res = await examsService.updateExam(examId, { status: newStatus });
+      if (!res.success) throw new Error(res.message || 'Failed to update exam status');
+      setExams(prev => prev.map(e => e.id === examId ? { ...e, status: newStatus } : e));
+      toast({ title: 'Success', description: `Exam ${newStatus} successfully` });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update exam status",
+        description: error.message || "Failed to update exam status",
         variant: "destructive"
       });
     }
@@ -325,6 +230,163 @@ const TeacherExamsPage = () => {
     );
   };
 
+  // Format helpers
+  const isValidDate = (d) => {
+    const t = Date.parse(d);
+    return !isNaN(t);
+  };
+  const formatDate = (dateStr) => (dateStr && isValidDate(dateStr) ? new Date(dateStr).toLocaleDateString() : '—');
+  const formatTimeRange = (startTime, endTime) => {
+    if (!startTime || !endTime) return '—';
+    return `${startTime} - ${endTime}`;
+  };
+  const formatDurationHM = (minutes) => {
+    const m = Number(minutes);
+    if (!isFinite(m) || m <= 0) return '—';
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return `${h}h ${rem}m`;
+  };
+  const formatMarks = (totalMarks) => {
+    const n = Number(totalMarks);
+    if (!isFinite(n) || n <= 0) return '—';
+    return `${n} marks`;
+  };
+
+  // Reusable Exam Form
+  const ExamForm = ({ initial = {}, classesOptions = [], questionsOptions = [], onSubmit, onCancel }) => {
+    const [form, setForm] = useState({
+      title: initial.title || '',
+      classId: initial.class_id || initial.classId || classesOptions?.[0]?.id || '',
+      startDate: initial.start_date || initial.startDate || '',
+      endDate: initial.end_date || initial.endDate || '',
+      startTime: initial.start_time || initial.startTime || '',
+      endTime: initial.end_time || initial.endTime || '',
+      duration: initial.duration_minutes || initial.duration || 60,
+      totalMarks: initial.total_marks || initial.totalMarks || 100,
+      instructions: initial.instructions || '',
+      allowedLanguages: initial.allowed_languages || initial.allowedLanguages || ['python', 'cpp', 'javascript'],
+      selectedQuestions: initial.question_ids || initial.selectedQuestions || [],
+      status: initial.status || 'draft',
+    });
+
+    const toggleQuestion = (qid) => {
+      setForm(prev => {
+        const set = new Set(prev.selectedQuestions);
+        if (set.has(qid)) set.delete(qid); else set.add(qid);
+        return { ...prev, selectedQuestions: Array.from(set) };
+      });
+    };
+
+    const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!form.title?.trim()) { return; }
+      if (!form.classId) { return; }
+      onSubmit?.(form);
+    };
+
+    const languageChoices = [
+      { value: 'python', label: 'Python' },
+      { value: 'cpp', label: 'C++' },
+      { value: 'javascript', label: 'JavaScript' },
+      { value: 'java', label: 'Java' },
+    ];
+
+    const toggleLanguage = (lang) => {
+      setForm(prev => {
+        const set = new Set(prev.allowedLanguages);
+        if (set.has(lang)) set.delete(lang); else set.add(lang);
+        return { ...prev, allowedLanguages: Array.from(set) };
+      });
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium">Title</label>
+            <Input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="Exam title" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Class</label>
+            <Select value={String(form.classId)} onValueChange={(v) => update('classId', v)}>
+              <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+              <SelectContent>
+                {classesOptions.map(c => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.name} ({c.code})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Start Date</label>
+            <Input type="date" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">End Date</label>
+            <Input type="date" value={form.endDate} onChange={(e) => update('endDate', e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Start Time</label>
+            <Input type="time" value={form.startTime} onChange={(e) => update('startTime', e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">End Time</label>
+            <Input type="time" value={form.endTime} onChange={(e) => update('endTime', e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Duration (mins)</label>
+            <Input type="number" min="1" value={form.duration} onChange={(e) => update('duration', Number(e.target.value))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Total Marks</label>
+            <Input type="number" min="1" value={form.totalMarks} onChange={(e) => update('totalMarks', Number(e.target.value))} />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-medium">Instructions</label>
+          <Textarea value={form.instructions} onChange={(e) => update('instructions', e.target.value)} rows={3} placeholder="Exam instructions for students" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Allowed Languages</label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {languageChoices.map(l => (
+              <Button key={l.value} type="button" variant={form.allowedLanguages.includes(l.value) ? 'default' : 'outline'} size="sm" onClick={() => toggleLanguage(l.value)}>
+                {l.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-medium">Select Questions</label>
+          <ScrollArea className="h-48 mt-2 border rounded p-2">
+            <div className="space-y-2">
+              {questionsOptions.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No questions available.</div>
+              ) : questionsOptions.map(q => (
+                <div key={q.id || q.question_id} className="flex items-center justify-between p-2 border rounded">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{q.title || q.question_title}</div>
+                    <div className="text-xs text-muted-foreground">{q.difficulty || '—'}</div>
+                  </div>
+                  <Button type="button" size="sm" variant={form.selectedQuestions.includes(q.id || q.question_id) ? 'default' : 'outline'} onClick={() => toggleQuestion(q.id || q.question_id)}>
+                    {form.selectedQuestions.includes(q.id || q.question_id) ? 'Selected' : 'Select'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="submit">Save</Button>
+        </div>
+      </form>
+    );
+  };
+
   const stats = {
     total: exams.length,
     draft: exams.filter(e => e.status === 'draft').length,
@@ -353,7 +415,7 @@ const TeacherExamsPage = () => {
             Create, schedule, and manage exams for your classes.
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+        <Button onClick={() => navigate('/teacher/exams/create')}>
           Create New Exam
         </Button>
       </div>
@@ -499,24 +561,26 @@ const TeacherExamsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{new Date(exam.startDate).toLocaleDateString()}</div>
+                        <div className="font-medium">{formatDate(exam.startDate)}</div>
                         <div className="text-sm text-muted-foreground">
-                          {exam.startTime} - {exam.endTime}
+                          {formatTimeRange(exam.startTime, exam.endTime)}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <div className="font-medium">{Math.floor(exam.duration / 60)}h {exam.duration % 60}m</div>
-                        <div className="text-xs text-muted-foreground">{exam.totalMarks} marks</div>
+                        <div className="font-medium">{formatDurationHM(exam.duration)}</div>
+                        <div className="text-xs text-muted-foreground">{formatMarks(exam.totalMarks)}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
                         <div className="font-medium">{exam.questions}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {exam.questionsList.length} selected
-                        </div>
+                        {Array.isArray(exam.questionsList) && (
+                          <div className="text-xs text-muted-foreground">
+                            {exam.questionsList.length} selected
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -594,23 +658,7 @@ const TeacherExamsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Create Exam Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Create New Exam</DialogTitle>
-            <DialogDescription>
-              Create a new exam with questions from your question bank.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-4 text-center">
-            <p className="text-muted-foreground">Exam creation form will be implemented here.</p>
-            <Button onClick={() => setIsCreateDialogOpen(false)} className="mt-4">
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Create Exam now handled via /teacher/exams/create page */}
 
       {/* View Exam Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
@@ -653,11 +701,31 @@ const TeacherExamsPage = () => {
               Modify exam settings and questions.
             </DialogDescription>
           </DialogHeader>
-          <div className="p-4 text-center">
-            <p className="text-muted-foreground">Exam editing form will be implemented here.</p>
-            <Button onClick={() => setIsEditDialogOpen(false)} className="mt-4">
-              Close
-            </Button>
+          <div className="p-2">
+            {selectedExam && (
+              <ExamForm
+                initial={{
+                  title: selectedExam.title,
+                  class_id: selectedExam.class?.id,
+                  start_date: selectedExam.startDate,
+                  end_date: selectedExam.endDate,
+                  start_time: selectedExam.startTime,
+                  end_time: selectedExam.endTime,
+                  duration_minutes: selectedExam.duration,
+                  total_marks: selectedExam.totalMarks,
+                  instructions: selectedExam.instructions,
+                  allowed_languages: selectedExam.allowedLanguages,
+                  question_ids: selectedExam.questionsList,
+                  status: selectedExam.status,
+                }}
+                classesOptions={classes}
+                questionsOptions={questions}
+                onCancel={() => setIsEditDialogOpen(false)}
+                onSubmit={async (form) => {
+                  await handleUpdateExam(selectedExam.id, form);
+                }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

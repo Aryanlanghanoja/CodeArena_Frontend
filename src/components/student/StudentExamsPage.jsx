@@ -34,6 +34,7 @@ import {
 } from '../ui/tabs';
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import examsService from '../../services/examsService';
 
 const StudentExamsPage = () => {
   const { user } = useAuth();
@@ -47,130 +48,73 @@ const StudentExamsPage = () => {
   const [selectedExam, setSelectedExam] = useState(null);
   const [isExamDetailsOpen, setIsExamDetailsOpen] = useState(false);
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockExams = [
-          {
-            id: 1,
-            title: 'Midterm Exam - Programming Basics',
-            class: {
-              name: 'CS101 - Introduction to Programming',
-              code: 'CS101-2024'
-            },
-            startDate: '2024-01-25',
-            endDate: '2024-01-25',
-            startTime: '10:00',
-            endTime: '12:00',
-            duration: 120, // minutes
-            totalMarks: 100,
-            questions: 5,
-            status: 'upcoming',
-            instructions: 'This is a coding exam. You will have 2 hours to complete 5 programming questions.',
-            allowedLanguages: ['python', 'java', 'cpp', 'javascript'],
-            teacher: 'Dr. Sarah Smith',
-            timeRemaining: null,
-            canStart: true,
-            submitted: false,
-            score: null,
-            startTime: null,
-            endTime: null
+        setLoading(true);
+        const res = await examsService.listExams();
+        const mapExam = (e) => ({
+          id: e.id || e.exam_id,
+          title: e.title || 'Untitled',
+          class: {
+            name: e.class?.name || e.class_name || 'Class',
+            code: e.class?.code || e.class_code || '-'
           },
-          {
-            id: 2,
-            title: 'Weekly Quiz - Arrays',
-            class: {
-              name: 'CS101 - Introduction to Programming',
-              code: 'CS101-2024'
-            },
-            startDate: '2024-01-22',
-            endDate: '2024-01-22',
-            startTime: '15:00',
-            endTime: '16:00',
-            duration: 60,
-            totalMarks: 50,
-            questions: 3,
-            status: 'completed',
-            instructions: 'Quick quiz on array operations.',
-            allowedLanguages: ['python', 'java'],
-            teacher: 'Dr. Sarah Smith',
-            timeRemaining: null,
-            canStart: false,
-            submitted: true,
-            score: 45,
-            startTime: '2024-01-22T15:00:00Z',
-            endTime: '2024-01-22T15:45:00Z'
-          },
-          {
-            id: 3,
-            title: 'Final Exam - Data Structures',
-            class: {
-              name: 'CS201 - Data Structures',
-              code: 'CS201-2024'
-            },
-            startDate: '2024-02-15',
-            endDate: '2024-02-15',
-            startTime: '14:00',
-            endTime: '17:00',
-            duration: 180,
-            totalMarks: 150,
-            questions: 7,
-            status: 'upcoming',
-            instructions: 'Comprehensive exam covering all data structure topics.',
-            allowedLanguages: ['python', 'java', 'cpp'],
-            teacher: 'Dr. Sarah Smith',
-            timeRemaining: null,
-            canStart: false,
-            submitted: false,
-            score: null,
-            startTime: null,
-            endTime: null
-          },
-          {
-            id: 4,
-            title: 'Practice Test - Linked Lists',
-            class: {
-              name: 'CS201 - Data Structures',
-              code: 'CS201-2024'
-            },
-            startDate: '2024-01-20',
-            endDate: '2024-01-20',
-            startTime: '16:00',
-            endTime: '17:00',
-            duration: 60,
-            totalMarks: 30,
-            questions: 2,
-            status: 'active',
-            instructions: 'Practice test on linked list concepts.',
-            allowedLanguages: ['python', 'java'],
-            teacher: 'Dr. Sarah Smith',
-            timeRemaining: 1800, // 30 minutes in seconds
-            canStart: true,
-            submitted: false,
-            score: null,
-            startTime: '2024-01-20T16:00:00Z',
-            endTime: null
-          }
-        ];
-        
-        setExams(mockExams);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch exams",
-          variant: "destructive"
+          startDate: e.start_date || e.startDate,
+          endDate: e.end_date || e.endDate,
+          startTime: e.start_time || e.startTime,
+          endTime: e.end_time || e.endTime,
+          duration: e.duration_minutes ?? e.duration,
+          totalMarks: e.total_marks ?? e.totalMarks,
+          questions: e.questions_count ?? (Array.isArray(e.question_ids) ? e.question_ids.length : 0),
+          status: e.status || 'draft',
+          instructions: e.instructions || '',
+          allowedLanguages: e.allowed_languages || [],
+          submitted: false,
+          score: null
         });
+        const list = (res.data || []).map(mapExam);
+        setExams(list);
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to fetch exams', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-
     fetchExams();
   }, [toast]);
+
+  // Formatting helpers (align with TeacherExamsPage)
+  const isValidDate = (d) => {
+    const t = Date.parse(d);
+    return !isNaN(t);
+  };
+  const formatDate = (dateStr) => (dateStr && isValidDate(dateStr) ? new Date(dateStr).toLocaleDateString() : '—');
+  const formatTimeRange = (startTime, endTime) => {
+    if (!startTime || !endTime) return '—';
+    const formatTimePart = (v) => {
+      try {
+        if (typeof v === 'string' && v.includes('T')) {
+          const dt = new Date(v);
+          return isNaN(dt.getTime()) ? v : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      } catch {}
+      return v;
+    };
+    return `${formatTimePart(startTime)} - ${formatTimePart(endTime)}`;
+  };
+  const formatDurationHM = (minutes) => {
+    const m = Number(minutes);
+    if (!isFinite(m) || m <= 0) return '—';
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return `${h}h ${rem}m`;
+  };
+  const formatMarks = (totalMarks) => {
+    const n = Number(totalMarks);
+    if (!isFinite(n) || n <= 0) return '—';
+    return `${n} marks`;
+  };
 
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -249,7 +193,7 @@ const StudentExamsPage = () => {
     maxMarks: exams.filter(e => e.submitted).reduce((sum, exam) => sum + exam.totalMarks, 0)
   };
 
-  const classes = [...new Set(exams.map(e => e.class))];
+  const classes = [...new Map(exams.map(e => [e.class.code || e.class.name, e.class])).values()];
 
   if (loading) {
     return (
@@ -396,9 +340,9 @@ const StudentExamsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{new Date(exam.startDate).toLocaleDateString()}</div>
+                        <div className="font-medium">{formatDate(exam.startDate)}</div>
                         <div className="text-sm text-muted-foreground">
-                          {exam.startTime} - {exam.endTime}
+                          {formatTimeRange(exam.startTime, exam.endTime)}
                         </div>
                         {exam.status === 'active' && exam.timeRemaining && (
                           <div className="text-xs text-red-600 font-medium">
@@ -409,8 +353,8 @@ const StudentExamsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <div className="font-medium">{Math.floor(exam.duration / 60)}h {exam.duration % 60}m</div>
-                        <div className="text-xs text-muted-foreground">{exam.totalMarks} marks</div>
+                        <div className="font-medium">{formatDurationHM(exam.duration)}</div>
+                        <div className="text-xs text-muted-foreground">{formatMarks(exam.totalMarks)}</div>
                       </div>
                     </TableCell>
                     <TableCell>

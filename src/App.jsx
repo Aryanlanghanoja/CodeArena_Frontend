@@ -49,6 +49,7 @@ import CreateAssignmentPage from './components/teacher/CreateAssignmentPage';
 import ViewAssignmentPage from './components/teacher/ViewAssignmentPage';
 import EditAssignmentPage from './components/teacher/EditAssignmentPage';
 import ViewSubmissionsPage from './components/teacher/ViewSubmissionsPage';
+import CreateExamPage from './components/teacher/CreateExamPage';
 
 // Question Bank Routes
 import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
@@ -59,6 +60,7 @@ import StudentClassDetailsPage from './components/student/StudentClassDetailsPag
 import StudentExamsPage from './components/student/StudentExamsPage';
 import SolveAssignmentPage from './components/student/SolveAssignmentPage';
 import StudentQuestionSolver from './components/student/StudentQuestionSolver';
+import TakeCodingExamPage from './components/student/TakeCodingExamPage';
 
 import { mockProblems, mockContests } from './data/mockData';
 
@@ -295,6 +297,16 @@ const AppContent = () => {
           </RoleBasedRoute>
         } 
       />
+      <Route 
+        path="/student/exams/:examId/take" 
+        element={
+          <RoleBasedRoute allowedRoles={['student']}>
+            <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
+              <TakeCodingExamPage />
+            </div>
+          </RoleBasedRoute>
+        } 
+      />
       
       {/* Dashboard routes (inside dashboard layout) */}
       <Route path="/*" element={
@@ -486,6 +498,14 @@ const AppContent = () => {
           element={
             <RoleBasedRoute allowedRoles={['teacher']}>
               <TeacherExamsPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/exams/create" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <CreateExamPage />
             </RoleBasedRoute>
           } 
         />
