@@ -12,6 +12,11 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { autocompletion } from '@codemirror/autocomplete';
+import { keymap } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
+import useRestrictClipboardOutsideEditor from '../../hooks/useRestrictClipboardOutsideEditor';
+import { buildCompletionExtensions } from '../../lib/codeEditorCompletions';
 import { useTheme } from '../../contexts/ThemeContext';
 import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
@@ -81,6 +86,9 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
     { value: 'vim', label: 'Vim (8.1.2269)', judge0Id: 90 },
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
+
+  // Restrict copy/cut/paste everywhere on this page (including inside editor)
+  useRestrictClipboardOutsideEditor(true, 'all');
 
   // Auto-save with 6-hour expiration (same as ProblemSolvingPage)
   const saveToLocalStorage = useCallback((questionId, language, codeToSave) => {
@@ -760,7 +768,11 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
-              extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
+              extensions={[
+                languages.find(l => l.value === selectedLanguage)?.extension,
+                keymap.of([indentWithTab]),
+                ...buildCompletionExtensions(selectedLanguage),
+              ].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{ 
