@@ -21,6 +21,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
 import AssignmentSubmissionTestcasesModal from './AssignmentSubmissionTestcasesModal';
+import { EditorView, keymap } from '@codemirror/view';
 
 const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack, backButtonText = 'Back to Questions', onSubmissionUpdate }) => {
   const { isDarkMode } = useTheme();
@@ -87,8 +88,26 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
-  // Restrict copy/cut/paste everywhere on this page (including inside editor)
-  useRestrictClipboardOutsideEditor(true, 'all');
+
+  // Disable copy, cut, paste, drag/drop and related shortcuts in the editor
+  const noClipboard = [
+    keymap.of([
+      { key: 'Mod-c', preventDefault: true, run: () => true },
+      { key: 'Mod-v', preventDefault: true, run: () => true },
+      { key: 'Mod-x', preventDefault: true, run: () => true },
+      { key: 'Shift-Insert', preventDefault: true, run: () => true },
+      { key: 'Mod-Insert', preventDefault: true, run: () => true },
+    ]),
+    EditorView.domEventHandlers({
+      copy: (e) => e.preventDefault(),
+      cut: (e) => e.preventDefault(),
+      paste: (e) => e.preventDefault(),
+      drop: (e) => e.preventDefault(),
+      dragstart: (e) => e.preventDefault(),
+      contextmenu: (e) => e.preventDefault(),
+    }),
+  ];
+
 
   // Auto-save with 6-hour expiration (same as ProblemSolvingPage)
   const saveToLocalStorage = useCallback((questionId, language, codeToSave) => {
@@ -770,9 +789,8 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
               onChange={(value) => setCode(value)}
               extensions={[
                 languages.find(l => l.value === selectedLanguage)?.extension,
-                keymap.of([indentWithTab]),
-                ...buildCompletionExtensions(selectedLanguage),
-              ].filter(Boolean)}
+
+                ...noClipboard,].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{ 

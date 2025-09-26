@@ -38,7 +38,7 @@ export const navigationConfig = [
   {
     id: 'admin-system',
     label: 'System Health',
-    path: '/admin/system',
+    path: '/admin/system-health',
     icon: 'SettingsIcon',
     visibleRoles: ['admin'],
     description: 'System monitoring and health checks'

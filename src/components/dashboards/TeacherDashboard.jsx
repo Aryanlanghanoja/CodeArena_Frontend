@@ -77,18 +77,9 @@ const TeacherDashboard = () => {
     fetchDashboardData();
   }, [location.pathname]);
 
-  const upcomingExams = [
-    { id: 1, title: 'Midterm Exam - Data Structures', class: 'CS201', date: '2024-01-15', time: '10:00 AM', duration: '2 hours' },
-    { id: 2, title: 'Final Project - Software Engineering', class: 'CS401', date: '2024-01-20', time: '11:00 AM', duration: '3 hours' },
-    { id: 3, title: 'Quiz - Algorithms', class: 'CS301', date: '2024-01-18', time: '2:00 PM', duration: '1 hour' }
-  ];
+  const upcomingExams = [];
 
-  const recentSubmissions = [
-    { id: 1, student: 'John Doe', exam: 'Midterm Exam', class: 'CS201', score: 85, submitted: '2 hours ago' },
-    { id: 2, student: 'Jane Smith', exam: 'Midterm Exam', class: 'CS201', score: 92, submitted: '3 hours ago' },
-    { id: 3, student: 'Mike Johnson', exam: 'Final Project', class: 'CS401', score: 78, submitted: '1 day ago' },
-    { id: 4, student: 'Sarah Wilson', exam: 'Quiz', class: 'CS301', score: 95, submitted: '2 days ago' }
-  ];
+  const recentSubmissions = [];
 
   const performanceData = [
     { month: 'Sep', avgScore: 75, students: 120 },

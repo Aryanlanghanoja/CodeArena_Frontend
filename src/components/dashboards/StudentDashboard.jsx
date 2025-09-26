@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import classesService from '../../services/classesService';
 import learningPathService from '../../services/learningPathService';
+import examsService from '../../services/examsService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -41,6 +42,7 @@ const StudentDashboard = () => {
   });
   const [enrolledClasses, setEnrolledClasses] = React.useState([]);
   const [learningPaths, setLearningPaths] = React.useState([]);
+  const [exams, setExams] = React.useState([]);
   const [learningPathProgress, setLearningPathProgress] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -70,8 +72,24 @@ const StudentDashboard = () => {
           console.log('No learning paths data available');
         }
 
-        // TODO: Add other API calls for exams, submissions, etc.
-        // For now, using mock data for other stats
+        // Fetch exams
+        try {
+          const examsRes = await examsService.listExams();
+          const mapExam = (e) => ({
+            id: e.id || e.exam_id,
+            title: e.title || 'Untitled',
+            className: e.class?.name || e.class_name || 'Class',
+            date: e.start_date || e.startDate,
+            timeStart: e.start_time || e.startTime,
+            timeEnd: e.end_time || e.endTime,
+            duration: e.duration_minutes ?? e.duration,
+            status: e.status || 'draft',
+          });
+          const items = (examsRes.data || []).map(mapExam);
+          setExams(items);
+        } catch (err) {
+          setExams([]);
+        }
         
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -83,17 +101,24 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, [location.pathname]);
 
-  const upcomingExams = [
-    { id: 1, title: 'Midterm Exam - Data Structures', class: 'CS201', date: '2024-01-15', time: '10:00 AM', duration: '2 hours', status: 'upcoming' },
-    { id: 2, title: 'Quiz - Calculus I', class: 'MATH101', date: '2024-01-18', time: '2:00 PM', duration: '1 hour', status: 'upcoming' },
-    { id: 3, title: 'Final Project - Programming', class: 'CS101', date: '2024-01-20', time: '11:00 AM', duration: '3 hours', status: 'upcoming' }
-  ];
+  const upcomingExams = React.useMemo(() => {
+    const isValidDate = (d) => { const t = Date.parse(d); return !isNaN(t); };
+    const formatDate = (d) => (d && isValidDate(d) ? new Date(d).toLocaleDateString() : '—');
+    const formatTime = (s, e) => (s && e ? `${s} - ${e}` : '—');
+    const formatDurationHM = (m) => { const n = Number(m); if (!isFinite(n) || n <= 0) return '—'; const h = Math.floor(n/60); const r = n%60; return `${h}h ${r}m`; };
+    return exams
+      .filter(e => e.status === 'scheduled' || e.status === 'active' || e.isLocalDraft)
+      .map(e => ({
+        id: e.id,
+        title: e.title,
+        class: e.className,
+        date: formatDate(e.date),
+        time: formatTime(e.timeStart, e.timeEnd),
+        duration: formatDurationHM(e.duration)
+      }));
+  }, [exams]);
 
-  const recentResults = [
-    { id: 1, exam: 'Quiz - Programming Basics', class: 'CS101', score: 92, date: '2024-01-10', status: 'completed' },
-    { id: 2, exam: 'Midterm - Calculus I', class: 'MATH101', score: 78, date: '2024-01-08', status: 'completed' },
-    { id: 3, exam: 'Assignment - Data Structures', class: 'CS201', score: 85, date: '2024-01-05', status: 'completed' }
-  ];
+  const recentResults = [];
 
   const practiceProgress = [
     { difficulty: 'Easy', solved: 25, total: 30, color: '#10B981' },
@@ -442,7 +467,7 @@ const StudentDashboard = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => navigate(`/student/exams/${exam.id}`)}
+                    onClick={() => navigate(`/student/exams/${exam.id}/take`)}
                   >
                     Start
                   </Button>

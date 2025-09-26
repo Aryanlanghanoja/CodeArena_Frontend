@@ -21,6 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import questionsService from '../services/questionsService';
 import judge0Service from '../services/judge0Service';
 import SubmissionTestcasesModal from './SubmissionTestcasesModal';
+import { EditorView, keymap } from '@codemirror/view';
 
 const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Back to Problems' }) => {
   const { isDarkMode } = useTheme();
@@ -87,8 +88,27 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
-  // Restrict copy/cut/paste everywhere on this page (including inside editor)
-  useRestrictClipboardOutsideEditor(true, 'all');
+
+  // Disable copy, cut, paste, drag/drop and related shortcuts in the editor
+  const noClipboard = [
+    keymap.of([
+      { key: 'Mod-c', preventDefault: true, run: () => true },
+      { key: 'Mod-v', preventDefault: true, run: () => true },
+      { key: 'Mod-x', preventDefault: true, run: () => true },
+      { key: 'Shift-Insert', preventDefault: true, run: () => true },
+      { key: 'Mod-Insert', preventDefault: true, run: () => true },
+    ]),
+    EditorView.domEventHandlers({
+      copy: (e) => e.preventDefault(),
+      cut: (e) => e.preventDefault(),
+      paste: (e) => e.preventDefault(),
+      drop: (e) => e.preventDefault(),
+      dragstart: (e) => e.preventDefault(),
+      contextmenu: (e) => e.preventDefault(),
+    }),
+  ];
+  // const noClipboard = [];
+
 
   // Auto-save functionality with 6-hour expiration
   const saveToLocalStorage = useCallback((questionId, language, code) => {
@@ -672,12 +692,12 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
                 
                 if (testResult.is_visible) {
                   outputText += `Input: ${testResult.stdin}\n`;
-                  outputText += `Expected: ${testResult.expected_output}\n`;
+                  outputText += `Expected: \n${testResult.expected_output}\n`;
                   outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
                 } else {
                   outputText += `Input: [Hidden]\n`;
                   outputText += `Expected: [Hidden]\n`;
-                  outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
+                 // outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
                 }
                 
                 if (testResult.stderr) {
@@ -1389,9 +1409,8 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               onChange={(value) => setCode(value)}
               extensions={[
                 languages.find(l => l.value === selectedLanguage)?.extension,
-                keymap.of([indentWithTab]),
-                ...buildCompletionExtensions(selectedLanguage),
-              ].filter(Boolean)}
+
+                ...noClipboard,].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{
