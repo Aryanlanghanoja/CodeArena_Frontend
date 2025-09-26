@@ -16,6 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
 import AssignmentSubmissionTestcasesModal from './AssignmentSubmissionTestcasesModal';
+import { EditorView, keymap } from '@codemirror/view';
 
 const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack, backButtonText = 'Back to Questions', onSubmissionUpdate }) => {
   const { isDarkMode } = useTheme();
@@ -80,6 +81,25 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
     { value: 'cobol', label: 'COBOL (GnuCOBOL 2.2)', judge0Id: 77 },
     { value: 'vim', label: 'Vim (8.1.2269)', judge0Id: 90 },
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
+  ];
+
+  // Disable copy, cut, paste, drag/drop and related shortcuts in the editor
+  const noClipboard = [
+    keymap.of([
+      { key: 'Mod-c', preventDefault: true, run: () => true },
+      { key: 'Mod-v', preventDefault: true, run: () => true },
+      { key: 'Mod-x', preventDefault: true, run: () => true },
+      { key: 'Shift-Insert', preventDefault: true, run: () => true },
+      { key: 'Mod-Insert', preventDefault: true, run: () => true },
+    ]),
+    EditorView.domEventHandlers({
+      copy: (e) => e.preventDefault(),
+      cut: (e) => e.preventDefault(),
+      paste: (e) => e.preventDefault(),
+      drop: (e) => e.preventDefault(),
+      dragstart: (e) => e.preventDefault(),
+      contextmenu: (e) => e.preventDefault(),
+    }),
   ];
 
   // Auto-save with 6-hour expiration (same as ProblemSolvingPage)
@@ -760,7 +780,10 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
-              extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
+              extensions={[
+                languages.find(l => l.value === selectedLanguage)?.extension,
+                ...noClipboard,
+              ].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{ 

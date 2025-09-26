@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -443,6 +443,8 @@ const AppContent = () => {
             </RoleBasedRoute>
           } 
         />
+        {/* Backwards-compat route */}
+        <Route path="/admin/system" element={<Navigate to="/admin/system-health" replace />} />
         
         {/* Teacher Routes */}
         <Route 
