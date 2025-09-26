@@ -12,6 +12,11 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { indentWithTab } from '@codemirror/commands';
+import { autocompletion } from '@codemirror/autocomplete';
+import { keymap } from '@codemirror/view';
+import useRestrictClipboardOutsideEditor from '../hooks/useRestrictClipboardOutsideEditor';
+import { buildCompletionExtensions } from '../lib/codeEditorCompletions';
 import { useTheme } from '../contexts/ThemeContext';
 import questionsService from '../services/questionsService';
 import judge0Service from '../services/judge0Service';
@@ -83,6 +88,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
     { value: 'zig', label: 'Zig (0.6.0)', judge0Id: 91 }
   ];
 
+
   // Disable copy, cut, paste, drag/drop and related shortcuts in the editor
   const noClipboard = [
     keymap.of([
@@ -102,6 +108,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
     }),
   ];
   // const noClipboard = [];
+
 
   // Auto-save functionality with 6-hour expiration
   const saveToLocalStorage = useCallback((questionId, language, code) => {
@@ -1402,8 +1409,8 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               onChange={(value) => setCode(value)}
               extensions={[
                 languages.find(l => l.value === selectedLanguage)?.extension,
-                ...noClipboard,
-              ].filter(Boolean)}
+
+                ...noClipboard,].filter(Boolean)}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{
