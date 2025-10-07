@@ -13,7 +13,6 @@ import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { autocompletion } from '@codemirror/autocomplete';
-import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import useRestrictClipboardOutsideEditor from '../../hooks/useRestrictClipboardOutsideEditor';
 import { buildCompletionExtensions } from '../../lib/codeEditorCompletions';

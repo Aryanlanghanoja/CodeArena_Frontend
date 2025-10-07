@@ -14,7 +14,6 @@ import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { indentWithTab } from '@codemirror/commands';
 import { autocompletion } from '@codemirror/autocomplete';
-import { keymap } from '@codemirror/view';
 import useRestrictClipboardOutsideEditor from '../hooks/useRestrictClipboardOutsideEditor';
 import { buildCompletionExtensions } from '../lib/codeEditorCompletions';
 import { useTheme } from '../contexts/ThemeContext';
