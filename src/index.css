@@ -235,6 +235,15 @@ All colors MUST be HSL.
     background-color: hsl(var(--code-bg));
   }
 
+  /* Prevent text selection on problem descriptions */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   /* Scrollbar Styling */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
