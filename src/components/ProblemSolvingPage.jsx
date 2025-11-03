@@ -46,6 +46,9 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
   const containerRef = useRef(null);
   const autoSaveTimeoutRef = useRef(null);
 
+  // Prevent copying question text (outside editor)
+  useRestrictClipboardOutsideEditor(true, 'outside');
+
   const languages = [
     // Popular Languages with CodeMirror support
     { value: 'javascript', label: 'JavaScript (Node.js 12.14.0)', judge0Id: 63, extension: javascript() },
@@ -1067,7 +1070,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               <TabsTrigger value="submissions">Submissions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="description" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="description" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar no-select">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Problem Description</h3>
@@ -1112,7 +1115,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               </div>
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar">
+            <TabsContent value="testcase" className="flex-1 min-h-0 p-4 overflow-auto custom-scrollbar no-select">
               <div className="space-y-6">
                 {/* Public Test Cases */}
                 {loading ? (
