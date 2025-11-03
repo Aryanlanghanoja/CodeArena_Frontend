@@ -22,6 +22,9 @@ const LearningPathDetail = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(null);
   const [stats, setStats] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -52,13 +55,23 @@ const LearningPathDetail = () => {
         }
       }
       
-      // Fetch stats for teachers/admins
-      if (user?.role !== 'student' && learningPath?.created_by === user?.user_id) {
+      // Fetch stats & submissions for teachers/admins
+      if (user?.role !== 'student') {
         try {
           const statsResponse = await learningPathService.getPathStats(id);
           setStats(statsResponse.data);
         } catch (error) {
           console.log('No stats available');
+        }
+
+        try {
+          setSubmissionsLoading(true);
+          const listResponse = await learningPathService.getPathSubmissions(id, { moduleId: undefined });
+          setSubmissions(listResponse.data?.submissions || []);
+        } catch (error) {
+          console.log('No submissions available');
+        } finally {
+          setSubmissionsLoading(false);
         }
       }
     } catch (error) {
@@ -70,6 +83,37 @@ const LearningPathDetail = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFilterModule = async (moduleId) => {
+    try {
+      setSelectedModuleId(moduleId);
+      setSubmissionsLoading(true);
+      const res = await learningPathService.getPathSubmissions(id, { moduleId: moduleId || undefined });
+      setSubmissions(res.data?.submissions || []);
+    } catch (e) {
+      setSubmissions([]);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const response = await learningPathService.exportPathSubmissionsCsv(id, { moduleId: selectedModuleId || undefined });
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const suffix = selectedModuleId ? `_module_${selectedModuleId}` : '';
+      link.setAttribute('download', `learning_path_${id}_submissions${suffix}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({ title: 'Export failed', description: 'Could not download CSV', variant: 'destructive' });
     }
   };
 
@@ -373,7 +417,8 @@ const LearningPathDetail = () => {
         </Card>
       )}
 
-      {/* Modules */}
+      {/* Modules (Student view only). For faculty/admin, see the Tabs below */}
+      {user?.role === 'student' && (
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -503,36 +548,231 @@ const LearningPathDetail = () => {
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Student Statistics for Teachers/Admins */}
-      {stats && stats.student_progress && stats.student_progress.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Student Progress</CardTitle>
-            <CardDescription>
-              Overview of student progress in this learning path
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.student_progress.map((student) => (
-                <div key={student.student_id} className="flex items-center justify-between p-4 border rounded-lg">
+      {/* Faculty view: Tabs for Modules, Student Progress, Submissions */}
+      {user?.role !== 'student' ? (
+        <Tabs defaultValue="modules">
+          <TabsList className="mb-4">
+            <TabsTrigger value="modules">Modules</TabsTrigger>
+            <TabsTrigger value="progress">Student Progress</TabsTrigger>
+            <TabsTrigger value="submissions">Submissions</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="modules">
+            {/* Modules */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{student.student_name}</div>
-                    <div className="text-sm text-muted-foreground">{student.student_email}</div>
+                    <CardTitle>Modules</CardTitle>
+                    <CardDescription>
+                      {modules.length > 0 
+                        ? 'Explore the structured learning modules in this path'
+                        : 'No modules have been added to this learning path yet'
+                      }
+                    </CardDescription>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{student.completion_percentage}%</div>
-                    <div className="text-xs text-muted-foreground">
-                      {student.completed_questions}/{student.total_questions} questions
+                  {canEdit && (
+                    <div className="flex gap-2">
+                      {modules.length > 1 && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => navigate(`/learning-paths/${id}/modules/reorder`)}
+                          className="flex items-center gap-2"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Reorder
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => navigate(`/learning-paths/${id}/modules/create`)}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Module
+                      </Button>
                     </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {modules.length > 0 ? (
+                  <div className="space-y-4">
+                    {modules.map((module, index) => (
+                      <Card key={module.module_id} className="border-l-4 border-l-primary">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg">
+                                Module {index + 1}: {module.title}
+                              </CardTitle>
+                              <CardDescription>{module.description}</CardDescription>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-muted-foreground">Questions</div>
+                              <div className="font-medium">{module.questions?.length || 0}</div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {/* Questions Preview */}
+                            {module.questions && module.questions.length > 0 && (
+                              <div>
+                                <div className="text-sm font-medium mb-2">Questions:</div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {module.questions.slice(0, 4).map((question) => (
+                                    <div key={question.question_id} className="text-sm p-2 bg-muted rounded">
+                                      {question.question_title}
+                                    </div>
+                                  ))}
+                                  {module.questions.length > 4 && (
+                                    <div className="text-sm p-2 bg-muted rounded text-muted-foreground">
+                                      +{module.questions.length - 4} more questions
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {/* Action Button */}
+                            <div className="flex justify-end">
+                              <Button 
+                                variant="outline"
+                                onClick={() => navigate(`/learning-paths/${id}/modules/${module.module_id}`)}
+                              >
+                                View Module
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="mb-4">No modules have been added to this learning path yet.</p>
+                    {canEdit && (
+                      <Button onClick={() => navigate(`/learning-paths/${id}/modules/create`)}>
+                        Add First Module
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="progress">
+            {/* Student Progress */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Student Progress</CardTitle>
+                <CardDescription>
+                  Overview of student progress in this learning path
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {stats && stats.student_progress && stats.student_progress.length > 0 ? (
+                  <div className="space-y-4">
+                    {stats.student_progress.map((student) => (
+                      <div key={student.student_id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{student.student_name}</div>
+                          <div className="text-sm text-muted-foreground">{student.student_email}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">{student.completion_percentage}%</div>
+                          <div className="text-xs text-muted-foreground">
+                            {student.completed_questions}/{student.total_questions} questions
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">No progress data available.</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="submissions">
+            {/* Submissions */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Submissions</CardTitle>
+                    <CardDescription>Latest practice submissions per student per question</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedModuleId}
+                      onChange={(e) => handleFilterModule(e.target.value)}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">All Modules</option>
+                      {modules.map((m) => (
+                        <option key={m.module_id} value={m.module_id}>Module {m.module_id}: {m.title}</option>
+                      ))}
+                    </select>
+                    <Button size="sm" onClick={handleExportCsv}>Export CSV</Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardHeader>
+              <CardContent>
+                {submissionsLoading ? (
+                  <div className="text-muted-foreground">Loading submissions...</div>
+                ) : submissions.length === 0 ? (
+                  <div className="text-muted-foreground">No submissions found for this learning path.</div>
+                ) : (
+                  <div className="overflow-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-left border-b">
+                          <th className="py-2 pr-4">User</th>
+                          <th className="py-2 pr-4">Email</th>
+                          <th className="py-2 pr-4">Question</th>
+                          <th className="py-2 pr-4">Status</th>
+                          <th className="py-2 pr-4">Score</th>
+                          <th className="py-2 pr-4">Total</th>
+                          <th className="py-2 pr-4">Public</th>
+                          <th className="py-2 pr-4">Hidden</th>
+                          <th className="py-2 pr-4">Passed</th>
+                          <th className="py-2 pr-4">Failed</th>
+                          <th className="py-2 pr-4">Avg Time</th>
+                          <th className="py-2 pr-4">Avg Mem</th>
+                          <th className="py-2 pr-4">Submitted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {submissions.map((s) => (
+                          <tr key={s.submission_id} className="border-b hover:bg-muted/40">
+                            <td className="py-2 pr-4">{s.user_name || s.user_id}</td>
+                            <td className="py-2 pr-4">{s.user_email}</td>
+                            <td className="py-2 pr-4">{s.question_title || s.question_id}</td>
+                            <td className="py-2 pr-4">{s.status}</td>
+                            <td className="py-2 pr-4">{typeof s.score === 'number' ? s.score.toFixed(2) : s.score}</td>
+                            <td className="py-2 pr-4">{s.total_testcases}</td>
+                            <td className="py-2 pr-4">{s.public_testcases}</td>
+                            <td className="py-2 pr-4">{s.hidden_testcases}</td>
+                            <td className="py-2 pr-4">{s.passed_testcases}</td>
+                            <td className="py-2 pr-4">{s.failed_testcases}</td>
+                            <td className="py-2 pr-4">{s.average_execution_time}</td>
+                            <td className="py-2 pr-4">{s.average_memory_used}</td>
+                            <td className="py-2 pr-4">{s.submitted_at ? new Date(s.submitted_at).toLocaleString() : ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : null}
     </div>
   );
 };
