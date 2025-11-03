@@ -209,6 +209,23 @@ const learningPathService = {
     return response.data;
   },
 
+  // Reports: Learning Path Submissions (teacher)
+  getPathSubmissions: async (pathId, { moduleId } = {}) => {
+    const params = new URLSearchParams();
+    if (moduleId) params.append('module_id', moduleId);
+    const response = await api.get(`/learning-paths/${pathId}/reports/submissions?${params.toString()}`);
+    return response.data;
+  },
+
+  exportPathSubmissionsCsv: async (pathId, { moduleId } = {}) => {
+    const params = new URLSearchParams();
+    if (moduleId) params.append('module_id', moduleId);
+    const response = await api.get(`/learning-paths/${pathId}/reports/submissions/export?${params.toString()}`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
   getStudentOverallProgress: async () => {
     const response = await api.get('/progress/student/overall');
     return response.data;
