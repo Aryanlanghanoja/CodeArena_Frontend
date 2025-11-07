@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,6 +21,7 @@ const AuthPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
+  const [devtoolsOpen, setDevtoolsOpen] = useState(false);
 
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -41,8 +42,26 @@ const AuthPage = () => {
     designation: ''
   });
 
+  const isDevtoolsOpenNow = () => {
+    try {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      return widthThreshold || heightThreshold;
+    } catch { return false; }
+  };
+
+  useEffect(() => {
+    setDevtoolsOpen(isDevtoolsOpenNow());
+    const id = setInterval(() => setDevtoolsOpen(isDevtoolsOpenNow()), 1200);
+    return () => clearInterval(id);
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isDevtoolsOpenNow()) {
+      toast({ title: 'Developer tools detected', description: 'Close devtools to continue logging in.', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -74,6 +93,10 @@ const AuthPage = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (isDevtoolsOpenNow()) {
+      toast({ title: 'Developer tools detected', description: 'Close devtools to continue registration.', variant: 'destructive' });
+      return;
+    }
     
     if (registerForm.password !== registerForm.confirmPassword) {
       toast({
@@ -179,6 +202,19 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      {devtoolsOpen && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-lg w-full">
+            <CardHeader>
+              <CardTitle>Developer Tools Detected</CardTitle>
+              <CardDescription>Close devtools to continue to login or register.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">Once devtools is closed, this screen will dismiss automatically.</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">CodeArena</h1>

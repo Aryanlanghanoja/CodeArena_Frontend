@@ -21,6 +21,9 @@ import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
 import AssignmentSubmissionTestcasesModal from './AssignmentSubmissionTestcasesModal';
 import { EditorView, keymap } from '@codemirror/view';
+import useProctoring from '../../hooks/useProctoring';
+import proctorService from '../../services/proctorService';
+import { useNavigate } from 'react-router-dom';
 
 const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack, backButtonText = 'Back to Questions', onSubmissionUpdate }) => {
   const { isDarkMode } = useTheme();
@@ -45,6 +48,94 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
   const resizerRef = useRef(null);
   const containerRef = useRef(null);
   const autoSaveTimeoutRef = useRef(null);
+  const [violationCount, setViolationCount] = useState(0);
+  const violationThreshold = 3;
+  const contentBlurred = violationCount >= violationThreshold;
+  const logEvent = async (type, details = {}) => {
+    proctorService.logEvent({ type, page: 'assignment_solve', details });
+  };
+  const bumpViolation = (type) => {
+    setViolationCount((v) => v + 1);
+    logEvent(type);
+  };
+  const navigate = useNavigate();
+  // Proctoring: basic devtools/context-menu/shortcut deterrents
+  useProctoring({ enabled: true, threshold: 2, onViolation: () => {
+    try { toast({ title: 'Proctoring notice', description: 'Policy violation detected', variant: 'destructive' }); } catch {}
+  }});
+
+  useEffect(() => {
+    const preventContext = (e) => { e.preventDefault(); bumpViolation('contextmenu'); };
+    const preventKeys = (e) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const ctrl = isMac ? e.metaKey : e.ctrlKey;
+      if (
+        e.key === 'F12' ||
+        (ctrl && e.shiftKey && (e.key.toLowerCase() === 'i' || e.key.toLowerCase() === 'j' || e.key.toLowerCase() === 'c'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        bumpViolation('devtools_shortcut');
+      }
+    };
+    document.addEventListener('contextmenu', preventContext, { capture: true });
+    window.addEventListener('keydown', preventKeys, true);
+    return () => {
+      document.removeEventListener('contextmenu', preventContext, { capture: true });
+      window.removeEventListener('keydown', preventKeys, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    let devtoolsOpen = false;
+    const check = () => {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      const opened = widthThreshold || heightThreshold;
+      if (opened && !devtoolsOpen) {
+        devtoolsOpen = true;
+        try { toast({ title: 'Proctoring notice', description: 'Developer tools detected. Copying is not allowed.', variant: 'destructive' }); } catch {}
+        bumpViolation('devtools_detected');
+      } else if (!opened && devtoolsOpen) {
+        devtoolsOpen = false;
+      }
+    };
+    const intervalId = setInterval(check, 1500);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Fullscreen requirement
+  const [isFullscreen, setIsFullscreen] = useState(() => !!document.fullscreenElement);
+  const isDevtoolsOpenNow = () => {
+    try {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      return widthThreshold || heightThreshold;
+    } catch { return false; }
+  };
+  const requestFullscreen = async () => {
+    if (isDevtoolsOpenNow()) {
+      bumpViolation('devtools_block_fullscreen');
+      try { toast({ title: 'Disable developer tools', description: 'Close devtools to continue.', variant: 'destructive' }); } catch {}
+      return;
+    }
+    try { await document.documentElement.requestFullscreen(); } catch {} };
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) {
+        bumpViolation('fullscreen_exit');
+        try {
+          const here = window.location.pathname + window.location.search;
+          sessionStorage.setItem('proctorReturnUrl', here);
+        } catch {}
+        navigate('/proctor/return', { replace: true });
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [navigate]);
 
   // Prevent copying question text (outside editor)
   useRestrictClipboardOutsideEditor(true, 'outside');
@@ -567,7 +658,25 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={contentBlurred ? { filter: 'blur(6px)', pointerEvents: 'none' } : undefined}>
+      {!isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-lg w-full">
+            <CardHeader>
+              <CardTitle>Enter Fullscreen to Continue</CardTitle>
+              <CardDescription>
+                For academic integrity, the solving environment requires fullscreen mode. You can exit fullscreen after you submit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Press the button below to enter fullscreen.</div>
+                <Button onClick={requestFullscreen}>Enter Fullscreen</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {/* Main Content */}
       <div ref={containerRef} className="flex-1 flex relative h-full">
         {/* Left Panel */}
@@ -779,6 +888,7 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
                 </Select>
               </div>
               <div className="flex items-center space-x-2">
+                {!isFullscreen && (<Button variant="outline" size="sm" onClick={requestFullscreen}>Fullscreen</Button>)}
                 <Button variant="outline" size="sm" onClick={handleReset}>Reset</Button>
                 <Button variant="outline" size="sm" onClick={handleRun} disabled={isRunning}>{isRunning ? 'Running...' : 'Run'}</Button>
                 <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Submitting...' : 'Submit'}</Button>

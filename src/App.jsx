@@ -29,6 +29,8 @@ import CreateModule from './components/learning-paths/CreateModule';
 import ReorderModules from './components/learning-paths/ReorderModules';
 import ReorderQuestions from './components/learning-paths/ReorderQuestions';
 import questionsService from './services/questionsService';
+import ProctorReturn from './components/ProctorReturn';
+import GlobalDevtoolsOverlay from './components/GlobalDevtoolsOverlay';
 import { Button } from './components/ui/button';
 
 // Import new role-based components
@@ -311,6 +313,7 @@ const AppContent = () => {
       {/* Dashboard routes (inside dashboard layout) */}
       <Route path="/*" element={
         <DashboardLayout>
+          <GlobalDevtoolsOverlay />
           <Routes>
         {/* Main Dashboard */}
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -321,6 +324,7 @@ const AppContent = () => {
         <Route path="/contests/:contestId" element={<ContestDetailsRoute onBackToContests={handleBackToContests} onProblemSelect={handleProblemSelect} />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/exam" element={<ExamPage onBackToDashboard={handleBackToDashboard} />} />
+        <Route path="/proctor/return" element={<ProctorReturn />} />
         <Route path="/courses" element={<CoursesPage onCourseSelect={handleCourseSelect} onBackToDashboard={handleBackToDashboard} />} />
         <Route path="/courses/:courseId" element={<CoursesPage onBackToDashboard={handleBackToDashboard} />} />
         <Route 
