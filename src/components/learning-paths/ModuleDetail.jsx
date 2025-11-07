@@ -309,9 +309,7 @@ const ModuleDetail = () => {
                           <CardTitle className="text-lg">
                             Question {index + 1}: {question.question_title}
                           </CardTitle>
-                          <CardDescription className="mt-2">
-                            {question.description}
-                          </CardDescription>
+                          {/* Description hidden as requested */}
                         </div>
                         <div className="flex items-center gap-2">
                           {isCompleted && (
@@ -334,24 +332,7 @@ const ModuleDetail = () => {
                             <Play className="h-4 w-4 mr-2" />
                             Solve Question
                           </Button>
-                          {isStudent && isEnrolled && (
-                            <Button 
-                              variant={isCompleted ? "outline" : "default"}
-                              onClick={() => handleQuestionComplete(question.question_id, !isCompleted)}
-                            >
-                              {isCompleted ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Mark Incomplete
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Mark Complete
-                                </>
-                              )}
-                            </Button>
-                          )}
+                          {/* Mark Complete button removed as requested */}
                         </div>
                         {questionProgress?.completed_at && (
                           <div className="text-sm text-muted-foreground">
