@@ -10,6 +10,7 @@ import { useToast } from '../../hooks/use-toast';
 import classesService from '../../services/classesService';
 import examsService from '../../services/examsService';
 import questionsService from '../../services/questionsService';
+import { JUDGE0_LANGUAGES, POPULAR_LANGUAGES } from '../../data/judge0Languages';
 
 const StepHeader = ({ step, total, title, description }) => (
   <div className="mb-4">
@@ -45,7 +46,7 @@ const CreateExamPage = () => {
     endTime: '',
     duration: 60,
     totalMarks: 100,
-    allowedLanguages: ['python', 'cpp', 'javascript'],
+    allowedLanguages: [71, 54, 63], // Default: Python, C++, JavaScript (Judge0 IDs)
     classIds: [],
     questionIds: [],
     status: 'draft',
@@ -56,7 +57,12 @@ const CreateExamPage = () => {
       try {
         setLoading(true);
         const clsRes = await classesService.listClasses().catch(() => ({ success: false, data: { classes: [] } }));
-        const clsList = clsRes?.data?.classes?.map(c => ({ id: c.class_id || c.join_code || c.id, name: c.class_name || c.name, code: c.join_code || c.code, students: c.student_count })) || [];
+        const clsList = clsRes?.data?.classes?.map(c => ({ 
+          id: c.join_code || c.class_id || c.id, // Use join_code as primary identifier
+          name: c.class_name || c.name, 
+          code: c.join_code || c.code, 
+          students: c.student_count 
+        })) || [];
         setClasses(clsList);
 
         // Use existing questionsService for consistency
@@ -75,11 +81,17 @@ const CreateExamPage = () => {
   }, []);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
-  const toggleLang = (lang) => setForm(prev => {
-    const set = new Set(prev.allowedLanguages);
-    if (set.has(lang)) set.delete(lang); else set.add(lang);
-    return { ...prev, allowedLanguages: Array.from(set) };
-  });
+  const toggleLang = (langId) => {
+    setForm(prev => {
+      const set = new Set(prev.allowedLanguages);
+      if (set.has(langId)) {
+        set.delete(langId);
+      } else {
+        set.add(langId);
+      }
+      return { ...prev, allowedLanguages: Array.from(set) };
+    });
+  };
   const toggleClass = (id) => setForm(prev => {
     const set = new Set(prev.classIds);
     if (set.has(id)) set.delete(id); else set.add(id);
@@ -92,7 +104,23 @@ const CreateExamPage = () => {
   });
 
   const canNext = useMemo(() => {
-    if (step === 1) return form.title.trim().length > 0 && form.startDate && form.endDate && form.startTime && form.endTime && form.duration > 0 && form.totalMarks > 0;
+    if (step === 1) {
+      const hasTitle = form.title.trim().length > 0;
+      const hasDates = form.startDate && form.endDate && form.startTime && form.endTime;
+      const hasDuration = form.duration > 0;
+      const hasMarks = form.totalMarks > 0;
+      const hasLanguages = form.allowedLanguages.length > 0;
+      
+      // Validate datetime: end datetime must be after start datetime
+      let validDateTime = true;
+      if (hasDates) {
+        const startDateTime = new Date(`${form.startDate}T${form.startTime}`);
+        const endDateTime = new Date(`${form.endDate}T${form.endTime}`);
+        validDateTime = endDateTime > startDateTime;
+      }
+      
+      return hasTitle && hasDates && hasDuration && hasMarks && hasLanguages && validDateTime;
+    }
     if (step === 2) return form.classIds.length > 0;
     if (step === 3) return form.questionIds.length > 0;
     return true;
@@ -100,6 +128,19 @@ const CreateExamPage = () => {
 
   const handleCreate = async () => {
     try {
+      // Validate datetime before submission
+      const startDateTime = new Date(`${form.startDate}T${form.startTime}`);
+      const endDateTime = new Date(`${form.endDate}T${form.endTime}`);
+      
+      if (endDateTime <= startDateTime) {
+        toast({ 
+          title: 'Invalid Schedule', 
+          description: 'End date/time must be after start date/time', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
       const payload = {
         title: form.title,
         start_date: form.startDate,
@@ -109,9 +150,9 @@ const CreateExamPage = () => {
         duration_minutes: form.duration,
         total_marks: form.totalMarks,
         instructions: form.instructions,
-        allowed_languages: form.allowedLanguages,
+        allowed_languages: form.allowedLanguages, // Array of Judge0 language IDs
         question_ids: form.questionIds,
-        class_ids: form.classIds,
+        class_ids: form.classIds, // Array of join_codes
         status: form.status,
       };
       const res = await examsService.createExam(payload);
@@ -177,11 +218,53 @@ const CreateExamPage = () => {
               <Textarea rows={4} value={form.instructions} onChange={(e) => update('instructions', e.target.value)} placeholder="Write instructions for students..." />
             </div>
             <div className="mt-4">
-              <label className="text-sm font-medium">Allowed Languages</label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {['python','cpp','javascript','java'].map(l => (
-                  <Button key={l} type="button" size="sm" variant={form.allowedLanguages.includes(l) ? 'default' : 'outline'} onClick={() => toggleLang(l)} className="capitalize">{l}</Button>
-                ))}
+              <label className="text-sm font-medium">Allowed Languages (Judge0 IDs)</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Select programming languages that students can use for this exam
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-medium mb-2">Popular Languages</p>
+                  <div className="flex flex-wrap gap-2">
+                    {POPULAR_LANGUAGES.map(lang => (
+                      <Button
+                        key={`${lang.id}-${lang.value}`}
+                        type="button"
+                        size="sm"
+                        variant={form.allowedLanguages.includes(lang.id) ? 'default' : 'outline'}
+                        onClick={() => toggleLang(lang.id)}
+                      >
+                        {lang.name}
+                        {form.allowedLanguages.includes(lang.id) && ' ✓'}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium mb-2">All Languages</p>
+                  <div className="max-h-48 overflow-y-auto border rounded p-2">
+                    <div className="flex flex-wrap gap-2">
+                      {JUDGE0_LANGUAGES.map(lang => (
+                        <Button
+                          key={`${lang.id}-${lang.value}`}
+                          type="button"
+                          size="sm"
+                          variant={form.allowedLanguages.includes(lang.id) ? 'default' : 'outline'}
+                          onClick={() => toggleLang(lang.id)}
+                          className="text-xs"
+                        >
+                          {lang.name}
+                          {form.allowedLanguages.includes(lang.id) && ' ✓'}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {form.allowedLanguages.length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Selected: {form.allowedLanguages.length} language(s)
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -252,7 +335,19 @@ const CreateExamPage = () => {
               <div><strong>Schedule:</strong> {form.startDate} {form.startTime} → {form.endDate} {form.endTime}</div>
               <div><strong>Duration:</strong> {form.duration} mins</div>
               <div><strong>Total Marks:</strong> {form.totalMarks}</div>
-              <div><strong>Allowed Languages:</strong> {form.allowedLanguages.join(', ')}</div>
+              <div>
+                <strong>Allowed Languages:</strong>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {form.allowedLanguages.map(langId => {
+                     const lang = JUDGE0_LANGUAGES.find(l => l.id === langId);
+                     return lang ? (
+                      <Badge key={`${lang.id}-${lang.value}`} variant="outline" className="text-xs">
+                        {lang.name}
+                      </Badge>
+                     ) : null;
+                  })}
+                </div>
+              </div>
               <div><strong>Classes:</strong> {classes.filter(c => form.classIds.includes(c.id)).map(c => c.name).join(', ') || 'None'}</div>
               <div><strong>Questions:</strong> {questions.filter(q => form.questionIds.includes(q.id)).map(q => q.title).join(', ') || 'None'}</div>
               <div>

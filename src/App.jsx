@@ -52,6 +52,7 @@ import ViewAssignmentPage from './components/teacher/ViewAssignmentPage';
 import EditAssignmentPage from './components/teacher/EditAssignmentPage';
 import ViewSubmissionsPage from './components/teacher/ViewSubmissionsPage';
 import CreateExamPage from './components/teacher/CreateExamPage';
+import ViewExamSubmissionsPage from './components/teacher/ViewExamSubmissionsPage';
 
 // Question Bank Routes
 import { TeacherQuestionBankRoutes, AdminQuestionBankRoutes, StudentPracticeRoutes } from './routes/questionRoutes.jsx';
@@ -63,6 +64,7 @@ import StudentExamsPage from './components/student/StudentExamsPage';
 import SolveAssignmentPage from './components/student/SolveAssignmentPage';
 import StudentQuestionSolver from './components/student/StudentQuestionSolver';
 import TakeCodingExamPage from './components/student/TakeCodingExamPage';
+import ExamSolvingPage from './components/ExamSolvingPage';
 
 import { mockProblems, mockContests } from './data/mockData';
 
@@ -149,7 +151,11 @@ const ProblemSolvingRoute = ({ onBackToProblemList }) => {
             topic: dbQuestion.tags || 'General',
             company: dbQuestion.company_tags || 'General',
             constraints: dbQuestion.constraints ? [dbQuestion.constraints] : ['No specific constraints'],
-            examples: [], // Will be populated from testcases if needed
+            examples: dbQuestion.testcases?.filter(tc => tc.is_visible).map((tc, index) => ({
+              input: tc.stdin,
+              output: tc.expected_output,
+              explanation: tc.explanation || `Example ${index + 1}`
+            })) || [],
             starterCode: {
               javascript: '// Write your solution here\nfunction solution() {\n    // Your code goes here\n}',
               python: '# Write your solution here\ndef solution():\n    # Your code goes here\n    pass',
@@ -304,7 +310,7 @@ const AppContent = () => {
         element={
           <RoleBasedRoute allowedRoles={['student']}>
             <div style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
-              <TakeCodingExamPage />
+              <ExamSolvingPage />
             </div>
           </RoleBasedRoute>
         } 
@@ -512,6 +518,14 @@ const AppContent = () => {
           element={
             <RoleBasedRoute allowedRoles={['teacher']}>
               <CreateExamPage />
+            </RoleBasedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/exams/:examId/submissions" 
+          element={
+            <RoleBasedRoute allowedRoles={['teacher']}>
+              <ViewExamSubmissionsPage />
             </RoleBasedRoute>
           } 
         />

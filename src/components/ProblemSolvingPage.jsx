@@ -761,7 +761,7 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
                 if (testResult.is_visible) {
                   outputText += `Input: ${testResult.stdin}\n`;
                   outputText += `Expected: \n${testResult.expected_output}\n`;
-                  outputText += `Actual: ${testResult.stdout || 'No output'}\n`;
+                  outputText += `Actual: \n${testResult.stdout || 'No output'}\n`;
                 } else {
                   outputText += `Input: [Hidden]\n`;
                   outputText += `Expected: [Hidden]\n`;
@@ -1234,23 +1234,42 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Examples</h3>
                   <div className="space-y-4">
-                    {problem.examples.map((example, index) => (
-                      <div key={index} className="bg-code p-4 rounded-lg">
-                        <div className="space-y-2">
-                          <div>
-                            <strong>Input:</strong> <code className="ml-2">{example.input}</code>
+                    {(() => {
+                      // Use problem.examples if available, otherwise use visible testcases
+                      const examples = problem.examples && problem.examples.length > 0
+                        ? problem.examples
+                        : testcases.filter(tc => tc.is_visible === true).map((tc, index) => ({
+                            input: tc.stdin,
+                            output: tc.expected_output,
+                            explanation: tc.explanation || `Example ${index + 1}`
+                          }));
+                      
+                      if (examples.length === 0) {
+                        return (
+                          <div className="text-muted-foreground text-sm">
+                            No examples available for this problem.
                           </div>
-                          <div>
-                            <strong>Output:</strong> <code className="ml-2">{example.output}</code>
-                          </div>
-                          {example.explanation && (
+                        );
+                      }
+                      
+                      return examples.map((example, index) => (
+                        <div key={index} className="bg-code p-4 rounded-lg">
+                          <div className="space-y-2">
                             <div>
-                              <strong>Explanation:</strong> <span className="ml-2">{example.explanation}</span>
+                              <strong>Input:</strong> <code className="ml-2">{example.input}</code>
                             </div>
-                          )}
+                            <div>
+                              <strong>Output:</strong> <code className="ml-2">{example.output}</code>
+                            </div>
+                            {example.explanation && (
+                              <div>
+                                <strong>Explanation:</strong> <span className="ml-2">{example.explanation}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
 

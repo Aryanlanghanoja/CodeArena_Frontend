@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -6,7 +6,6 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Textarea } from '../ui/textarea';
 import { useToast } from '../../hooks/use-toast';
 import { useTheme } from '../../contexts/ThemeContext';
 import examsService from '../../services/examsService';
@@ -17,6 +16,27 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { getLanguageById } from '../../data/judge0Languages';
+import ReactMarkdown from 'react-markdown';
+
+const getCodeMirrorExtension = (languageValue) => {
+  switch (languageValue) {
+    case 'javascript':
+    case 'nodejs':
+      return javascript();
+    case 'typescript':
+      return javascript({ typescript: true });
+    case 'python':
+    case 'python3':
+    case 'python2':
+      return python();
+    case 'cpp':
+    case 'c':
+      return cpp();
+    default:
+      return null;
+  }
+};
 
 const TakeCodingExamPage = () => {
   const { examId } = useParams();
@@ -27,18 +47,54 @@ const TakeCodingExamPage = () => {
   const [loading, setLoading] = useState(true);
   const [exam, setExam] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  const [languageOptions, setLanguageOptions] = useState([]);
+  const [selectedLanguageId, setSelectedLanguageId] = useState(null);
   const [code, setCode] = useState('');
   const [testcases, setTestcases] = useState([]);
-  const [output, setOutput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(3600);
+  const [questionDetails, setQuestionDetails] = useState(null);
+  const questionCount = exam?.questions?.length || 0;
 
-  const languages = useMemo(() => ([
-    { value: 'javascript', label: 'JavaScript (Node.js 12.14.0)', judge0Id: 63, extension: javascript() },
-    { value: 'python', label: 'Python (3.8.1)', judge0Id: 71, extension: python() },
-    { value: 'cpp', label: 'C++ (GCC 9.2.0)', judge0Id: 54, extension: cpp() },
-  ]), []);
+  const selectedLanguageOption = languageOptions.find(lang => lang.judge0Id === selectedLanguageId);
+
+  useEffect(() => {
+    if (!exam) return;
+
+    const allowedIds = Array.isArray(exam.allowed_languages) && exam.allowed_languages.length > 0
+      ? exam.allowed_languages
+      : [63, 71, 54]; // Default fallback languages
+
+    const uniqueIds = Array.from(new Set(allowedIds));
+
+    const options = uniqueIds.map((id) => {
+      const meta = getLanguageById(id);
+      const value = meta?.value || `lang-${id}`;
+      const label = meta?.name || `Language ${id}`;
+
+      return {
+        judge0Id: id,
+        label,
+        value,
+        extension: getCodeMirrorExtension(value),
+      };
+    });
+
+    const fallbackOptions = options.length > 0 ? options : [{
+      judge0Id: 63,
+      label: 'JavaScript (Node.js 12.14.0)',
+      value: 'javascript',
+      extension: getCodeMirrorExtension('javascript'),
+    }];
+
+    setLanguageOptions(fallbackOptions);
+    setSelectedLanguageId((prev) => {
+      if (prev && fallbackOptions.some(opt => opt.judge0Id === prev)) {
+        return prev;
+      }
+      return fallbackOptions[0]?.judge0Id ?? null;
+    });
+  }, [exam]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -46,13 +102,18 @@ const TakeCodingExamPage = () => {
       // Try backend if available; fallback to mock
       const resp = await examsService.getExamDetails(examId).catch(() => ({ success: false }));
       if (resp.success && resp.data) {
-        setExam(resp.data);
+        const data = resp.data;
+        setExam({
+          ...data,
+          questions: Array.isArray(data.questions) ? data.questions : [],
+        });
       } else {
         // Mock exam with coding questions using existing questions API ids if needed
         setExam({
           id: examId,
           title: 'Proctored Coding Exam',
-          durationSec: 3600,
+          duration_minutes: 60,
+          allowed_languages: [63, 71, 54],
           questions: [
             { question_id: 1, question_title: 'Two Sum', difficulty: 'Easy' },
             { question_id: 2, question_title: 'Valid Parentheses', difficulty: 'Medium' },
@@ -67,7 +128,9 @@ const TakeCodingExamPage = () => {
   // Timer
   useEffect(() => {
     if (!exam) return;
-    setTimeRemaining(exam.durationSec || 3600);
+
+    const durationSeconds = exam.durationSec || (exam.duration_minutes ? exam.duration_minutes * 60 : 3600);
+    setTimeRemaining(durationSeconds > 0 ? durationSeconds : 3600);
     const intId = setInterval(() => {
       setTimeRemaining((t) => {
         if (t <= 1) {
@@ -79,7 +142,7 @@ const TakeCodingExamPage = () => {
       });
     }, 1000);
     return () => clearInterval(intId);
-  }, [exam]);
+  }, [exam, handleAutoSubmit]);
 
   const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -97,15 +160,42 @@ const TakeCodingExamPage = () => {
       const res = await questionsService.getQuestion(currentQuestion.question_id).catch(() => ({ success: false }));
       if (res.success) {
         setTestcases(res.data.testcases || []);
-        setCode('');
+        setQuestionDetails(res.data || null);
       } else {
         setTestcases([]);
-        setCode('');
+        setQuestionDetails(null);
       }
-      setOutput('');
+      setCode('');
     };
     run();
   }, [currentQuestion?.question_id]);
+
+  useEffect(() => {
+    if (!questionDetails || !selectedLanguageOption) return;
+
+    const starter = questionDetails.starter_code || questionDetails.starterCode;
+    if (!starter || typeof starter !== 'object') return;
+
+    const candidates = [
+      selectedLanguageOption.value,
+      selectedLanguageOption.value?.toLowerCase?.(),
+      selectedLanguageOption.value?.toUpperCase?.(),
+      selectedLanguageOption.judge0Id,
+      selectedLanguageOption.label,
+    ];
+
+    let snippet = '';
+    for (const candidate of candidates) {
+      if (candidate !== undefined && starter[candidate] !== undefined) {
+        snippet = starter[candidate];
+        break;
+      }
+    }
+
+    if (typeof snippet === 'string' && code.trim().length === 0) {
+      setCode(snippet);
+    }
+  }, [questionDetails, selectedLanguageOption, code]);
 
   // Proctoring
   const onViolation = useCallback((type) => {
@@ -116,12 +206,16 @@ const TakeCodingExamPage = () => {
     if (!currentQuestion?.question_id || submitting) return;
     try {
       setSubmitting(true);
-      const lang = languages.find(l => l.value === selectedLanguage);
+      const lang = selectedLanguageOption;
+      if (!lang) {
+        toast({ title: 'No language selected', description: 'Please choose a programming language before submitting.', variant: 'destructive' });
+        return;
+      }
       await examsService.submitSolution({
         examId,
         questionId: currentQuestion.question_id,
         sourceCode: code || '// empty',
-        languageId: lang?.judge0Id,
+        languageId: lang.judge0Id,
       });
       toast({ title: 'Exam auto-submitted', description: `Reason: ${reason}` });
       navigate('/student/exams');
@@ -130,7 +224,7 @@ const TakeCodingExamPage = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [examId, currentQuestion?.question_id, code, selectedLanguage, languages, submitting, toast, navigate]);
+  }, [examId, currentQuestion?.question_id, code, selectedLanguageOption, submitting, toast, navigate]);
 
   const { violationCount } = useProctoring({ enabled: true, threshold: 2, onViolation, onThreshold: () => handleAutoSubmit('proctoring_threshold') });
 
@@ -142,8 +236,6 @@ const TakeCodingExamPage = () => {
     enterFs();
     return () => { if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); } };
   }, []);
-
-  const safeFormat = (v, d = 1) => (typeof v === 'number' && !isNaN(v) ? v.toFixed(d) : 'N/A');
 
   if (loading) {
     return (
@@ -171,7 +263,7 @@ const TakeCodingExamPage = () => {
           <Badge variant="outline">Violations: {violationCount}</Badge>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant="secondary">Question {currentIndex + 1} / {exam.questions.length}</Badge>
+          <Badge variant="secondary">Question {questionCount > 0 ? currentIndex + 1 : 0} / {questionCount}</Badge>
           <div className="flex items-center gap-2 px-3 py-1 rounded bg-muted">
             <span className="font-mono font-semibold text-error">{formatTime(timeRemaining)}</span>
           </div>
@@ -180,8 +272,21 @@ const TakeCodingExamPage = () => {
 
       {/* Progress */}
       <div className="px-4 pt-3">
-        <Progress value={((currentIndex + 1) / exam.questions.length) * 100} className="h-2" />
+        <Progress value={questionCount > 0 ? ((currentIndex + 1) / questionCount) * 100 : 0} className="h-2" />
       </div>
+
+      {exam.instructions && (
+        <div className="px-4">
+          <Card className="mt-3">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Exam Instructions</CardTitle>
+            </CardHeader>
+            <CardContent className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown>{exam.instructions}</ReactMarkdown>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-4 p-4">
@@ -194,7 +299,7 @@ const TakeCodingExamPage = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                {exam.questions.map((q, i) => (
+                {(exam.questions || []).map((q, i) => (
                   <Button key={q.question_id} variant={i === currentIndex ? 'secondary' : 'outline'} className="w-full justify-start" onClick={() => setCurrentIndex(i)}>
                     <div className="flex items-center gap-3">
                       <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs font-semibold">{i + 1}</div>
@@ -219,11 +324,25 @@ const TakeCodingExamPage = () => {
                 <TabsTrigger value="testcase">Test Case</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                  <SelectContent>{languages.map(lang => (<SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>))}</SelectContent>
+                <Select
+                  value={selectedLanguageId !== null ? String(selectedLanguageId) : undefined}
+                  onValueChange={(value) => setSelectedLanguageId(Number(value))}
+                  disabled={languageOptions.length === 0}
+                >
+                  <SelectTrigger className="w-52">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languageOptions.map(lang => (
+                      <SelectItem key={lang.judge0Id} value={String(lang.judge0Id)}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-                <Button onClick={() => handleAutoSubmit('manual_submit')} disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Exam'}</Button>
+                <Button onClick={() => handleAutoSubmit('manual_submit')} disabled={submitting || !selectedLanguageOption || questionCount === 0}>
+                  {submitting ? 'Submitting...' : 'Submit Exam'}
+                </Button>
               </div>
             </div>
 
@@ -234,7 +353,13 @@ const TakeCodingExamPage = () => {
                   <CardDescription>{currentQuestion?.difficulty}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">Solve the problem in the editor. Public test cases are shown below.</p>
+                  {questionDetails?.problem_statement || questionDetails?.description ? (
+                    <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
+                      {questionDetails.problem_statement || questionDetails.description}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Solve the problem in the editor. Public test cases are shown below.</p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -258,7 +383,7 @@ const TakeCodingExamPage = () => {
             <CodeMirror
               value={code}
               onChange={setCode}
-              extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
+              extensions={selectedLanguageOption?.extension ? [selectedLanguageOption.extension] : []}
               theme={isDarkMode ? oneDark : undefined}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
               basicSetup={{ lineNumbers: true, foldGutter: true, bracketMatching: true, closeBrackets: true, autocompletion: true }}
@@ -269,8 +394,19 @@ const TakeCodingExamPage = () => {
           <div className="flex justify-between py-3">
             <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))} disabled={currentIndex === 0}>Previous</Button>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setCurrentIndex((i) => Math.min((exam.questions.length - 1), i + 1))} disabled={currentIndex >= exam.questions.length - 1}>Next</Button>
-              <Button onClick={() => handleAutoSubmit('manual_submit')} disabled={submitting}>Submit Exam</Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentIndex((i) => {
+                  if (questionCount === 0) return 0;
+                  return Math.min(questionCount - 1, i + 1);
+                })}
+                disabled={questionCount === 0 || currentIndex >= questionCount - 1}
+              >
+                Next
+              </Button>
+              <Button onClick={() => handleAutoSubmit('manual_submit')} disabled={submitting || !selectedLanguageOption || questionCount === 0}>
+                Submit Exam
+              </Button>
             </div>
           </div>
         </div>

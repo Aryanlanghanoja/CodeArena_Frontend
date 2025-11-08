@@ -35,12 +35,52 @@ import {
 import { useToast } from '../../hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import examsService from '../../services/examsService';
+import classesService from '../../services/classesService';
+import { getLanguageById } from '../../data/judge0Languages';
+
+const parseDateTime = (dateStr, timeStr) => {
+  if (!dateStr) return null;
+
+  if (timeStr && timeStr.includes('T')) {
+    const dt = new Date(timeStr);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const isoCandidate = timeStr ? `${dateStr}T${timeStr}` : dateStr;
+  let dt = new Date(isoCandidate);
+
+  if (!Number.isNaN(dt.getTime())) {
+    return dt;
+  }
+
+  dt = new Date(`${dateStr} ${timeStr}`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+
+const deriveExamRuntimeStatus = (exam) => {
+  const start = parseDateTime(exam.startDate || exam.start_date, exam.startTime || exam.start_time);
+  const end = parseDateTime(exam.endDate || exam.end_date, exam.endTime || exam.end_time);
+  const now = new Date();
+
+  if (start && now < start) return 'upcoming';
+  if (start && end && now >= start && now <= end) return 'active';
+  if (end && now > end) return 'completed';
+  return exam.status || 'draft';
+};
+
+const secondsUntil = (endDateTime) => {
+  if (!endDateTime) return null;
+  const diffMs = endDateTime.getTime() - Date.now();
+  return diffMs > 0 ? Math.floor(diffMs / 1000) : 0;
+};
 
 const StudentExamsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [exams, setExams] = useState([]);
+  const [studentClasses, setStudentClasses] = useState([]);
+  const [classLookup, setClassLookup] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -48,34 +88,146 @@ const StudentExamsPage = () => {
   const [selectedExam, setSelectedExam] = useState(null);
   const [isExamDetailsOpen, setIsExamDetailsOpen] = useState(false);
 
+  const normalizeClassRef = (cls) => {
+    if (!cls) return null;
+    return cls.join_code || cls.joinCode || cls.code || cls.class_id || cls.id || null;
+  };
+
+  const buildExamRecord = (exam, lookup) => {
+    const examClasses = Array.isArray(exam.classes) ? exam.classes : [];
+
+    const matchingClasses = examClasses
+      .map(cls => {
+        const joinCode = normalizeClassRef(cls);
+        if (!joinCode) return null;
+        const classInfo = lookup[joinCode];
+        if (!classInfo) return null;
+        return {
+          joinCode,
+          name: classInfo.name,
+          status: classInfo.status || cls.status || 'draft',
+          code: joinCode,
+        };
+      })
+      .filter(Boolean);
+
+    if (matchingClasses.length === 0) {
+      // Fallback: allow exam if it declares classes but we don't have lookup info yet
+      const fallbackClass = examClasses[0];
+      const joinCode = normalizeClassRef(fallbackClass);
+      if (!joinCode) {
+        return null;
+      }
+
+      const fallback = {
+        joinCode,
+        name: fallbackClass.name || 'Class',
+        status: fallbackClass.status || 'draft',
+        code: joinCode,
+      };
+
+      matchingClasses.push(fallback);
+      lookup[joinCode] = lookup[joinCode] || fallback;
+    }
+
+    const primaryClass = matchingClasses[0];
+
+    const startDate = exam.start_date || exam.startDate || null;
+    const endDate = exam.end_date || exam.endDate || null;
+    const startTime = exam.start_time || exam.startTime || null;
+    const endTime = exam.end_time || exam.endTime || null;
+
+    const runtimeStatus = deriveExamRuntimeStatus({
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      status: exam.status,
+    });
+
+    const startDateTime = parseDateTime(startDate, startTime);
+    const endDateTime = parseDateTime(endDate, endTime);
+
+    const allowedLanguageIds = Array.isArray(exam.allowed_languages)
+      ? exam.allowed_languages
+      : Array.isArray(exam.allowedLanguages)
+        ? exam.allowedLanguages
+        : [];
+
+    const allowedLanguages = allowedLanguageIds.map((id) => {
+      const meta = getLanguageById(id);
+      return { id, name: meta?.name || `Language ${id}` };
+    });
+
+    const durationMinutes = exam.duration_minutes ?? exam.duration ?? null;
+    const questionsCount = exam.questions_count
+      ?? (Array.isArray(exam.question_ids) ? exam.question_ids.length : 0)
+      ?? (Array.isArray(exam.questions) ? exam.questions.length : 0);
+
+    const canStart = runtimeStatus === 'active' && primaryClass.status === 'active';
+
+    return {
+      id: exam.exam_id || exam.id,
+      title: exam.title || exam.name || 'Untitled Exam',
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      duration: durationMinutes,
+      totalMarks: exam.total_marks ?? exam.totalMarks ?? null,
+      instructions: exam.instructions || '',
+      allowedLanguageIds,
+      allowedLanguages,
+      questions: questionsCount,
+      classes: matchingClasses,
+      primaryClass,
+      classStatus: primaryClass.status,
+      status: runtimeStatus,
+      rawStatus: exam.status || 'draft',
+      canStart,
+      startDateTime,
+      endDateTime,
+      timeRemaining: runtimeStatus === 'active' ? secondsUntil(endDateTime) : null,
+      score: exam.score ?? null,
+      submitted: exam.submitted ?? false,
+    };
+  };
+
   useEffect(() => {
     const fetchExams = async () => {
       try {
         setLoading(true);
-        const res = await examsService.listExams();
-        const mapExam = (e) => ({
-          id: e.id || e.exam_id,
-          title: e.title || 'Untitled',
-          class: {
-            name: e.class?.name || e.class_name || 'Class',
-            code: e.class?.code || e.class_code || '-'
-          },
-          startDate: e.start_date || e.startDate,
-          endDate: e.end_date || e.endDate,
-          startTime: e.start_time || e.startTime,
-          endTime: e.end_time || e.endTime,
-          duration: e.duration_minutes ?? e.duration,
-          totalMarks: e.total_marks ?? e.totalMarks,
-          questions: e.questions_count ?? (Array.isArray(e.question_ids) ? e.question_ids.length : 0),
-          status: e.status || 'draft',
-          instructions: e.instructions || '',
-          allowedLanguages: e.allowed_languages || [],
-          submitted: false,
-          score: null
-        });
-        const list = (res.data || []).map(mapExam);
-        setExams(list);
+
+        const [classesRes, examsRes] = await Promise.all([
+          classesService.listClasses().catch(() => null),
+          examsService.listExams().catch(() => ({ data: [] })),
+        ]);
+
+        const classesData = (classesRes?.data?.classes || []).map(cls => ({
+          joinCode: normalizeClassRef(cls),
+          name: cls.class_name || cls.name || 'Class',
+          status: cls.status || 'draft',
+          students: cls.student_count ?? 0,
+        })).filter(cls => cls.joinCode);
+
+        setStudentClasses(classesData);
+
+        const lookup = classesData.reduce((acc, cls) => {
+          acc[cls.joinCode] = cls;
+          return acc;
+        }, {});
+
+        setClassLookup(lookup);
+
+        const rawExams = Array.isArray(examsRes?.data) ? examsRes.data : [];
+        const normalized = rawExams
+          .filter(exam => !exam?.isLocalDraft)
+          .map(exam => buildExamRecord(exam, lookup))
+          .filter(Boolean);
+
+        setExams(normalized);
       } catch (error) {
+        console.error('Failed to load exams', error);
         toast({ title: 'Error', description: 'Failed to fetch exams', variant: 'destructive' });
       } finally {
         setLoading(false);
@@ -117,15 +269,26 @@ const StudentExamsPage = () => {
   };
 
   const filteredExams = exams.filter(exam => {
-    const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         exam.class.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || exam.status === statusFilter;
-    const matchesClass = classFilter === 'all' || exam.class.id?.toString() === classFilter;
+    const search = searchQuery.toLowerCase();
+    const matchesSearch = exam.title.toLowerCase().includes(search) ||
+      exam.classes.some(cls => cls.name.toLowerCase().includes(search) || cls.joinCode.toLowerCase().includes(search));
+
+    const matchesStatus = statusFilter === 'all' || exam.status === statusFilter || exam.rawStatus === statusFilter;
+    const matchesClass = classFilter === 'all' || exam.classes.some(cls => cls.joinCode === classFilter);
     return matchesSearch && matchesStatus && matchesClass;
   });
 
   const handleStartExam = (exam) => {
-    // Navigate to exam taking interface
+    if (!exam.canStart) {
+      toast({
+        title: 'Exam not available',
+        description: exam.classStatus !== 'active'
+          ? 'The associated class is not active yet. Please check with your instructor.'
+          : 'This exam is not currently active.',
+        variant: 'destructive'
+      });
+      return;
+    }
     navigate(`/student/exams/${exam.id}/take`);
   };
 
@@ -135,16 +298,38 @@ const StudentExamsPage = () => {
   };
 
   const getStatusBadge = (status) => {
+    const normalized = status?.toLowerCase?.() || 'draft';
     const variants = {
       upcoming: 'secondary',
+      scheduled: 'secondary',
       active: 'default',
       completed: 'success',
-      expired: 'destructive'
+      draft: 'outline',
+      archived: 'outline',
+      expired: 'destructive',
     };
-    
+
+    const label = normalized.replace(/_/g, ' ');
+
     return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge variant={variants[normalized] || 'secondary'}>
+        {label.charAt(0).toUpperCase() + label.slice(1)}
+      </Badge>
+    );
+  };
+
+  const getClassStatusBadge = (status) => {
+    const normalized = status?.toLowerCase?.() || 'draft';
+    const variants = {
+      active: 'default',
+      draft: 'outline',
+      inactive: 'secondary',
+    };
+
+    const label = normalized.replace(/_/g, ' ');
+    return (
+      <Badge variant={variants[normalized] || 'secondary'} className="text-xs">
+        {label.charAt(0).toUpperCase() + label.slice(1)}
       </Badge>
     );
   };
@@ -189,11 +374,11 @@ const StudentExamsPage = () => {
     upcoming: exams.filter(e => e.status === 'upcoming').length,
     active: exams.filter(e => e.status === 'active').length,
     completed: exams.filter(e => e.status === 'completed').length,
-    totalMarks: exams.filter(e => e.submitted).reduce((sum, exam) => sum + exam.score, 0),
-    maxMarks: exams.filter(e => e.submitted).reduce((sum, exam) => sum + exam.totalMarks, 0)
+    totalMarks: exams.filter(e => e.submitted).reduce((sum, exam) => sum + (Number(exam.score) || 0), 0),
+    maxMarks: exams.filter(e => e.submitted).reduce((sum, exam) => sum + (Number(exam.totalMarks) || 0), 0)
   };
-
-  const classes = [...new Map(exams.map(e => [e.class.code || e.class.name, e.class])).values()];
+ 
+  const classes = studentClasses.filter(cls => exams.some(exam => exam.classes.some(ec => ec.joinCode === cls.joinCode)));
 
   if (loading) {
     return (
@@ -290,6 +475,8 @@ const StudentExamsPage = () => {
                 <SelectItem value="upcoming">Upcoming</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
             <Select value={classFilter} onValueChange={setClassFilter}>
@@ -299,7 +486,7 @@ const StudentExamsPage = () => {
               <SelectContent>
                 <SelectItem value="all">All Classes</SelectItem>
                 {classes.map(cls => (
-                  <SelectItem key={cls.code} value={cls.code}>
+                  <SelectItem key={cls.joinCode} value={cls.joinCode}>
                     {cls.name}
                   </SelectItem>
                 ))}
@@ -328,14 +515,19 @@ const StudentExamsPage = () => {
                       <div>
                         <div className="font-medium">{exam.title}</div>
                         <div className="text-sm text-muted-foreground">
-                          {exam.instructions.substring(0, 80)}...
+                          {exam.instructions
+                            ? `${exam.instructions.slice(0, 80)}${exam.instructions.length > 80 ? '…' : ''}`
+                            : 'No instructions provided yet.'}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{exam.class.name}</div>
-                        <div className="text-sm text-muted-foreground">{exam.class.code}</div>
+                        <div className="font-medium">{exam.primaryClass.name}</div>
+                        <div className="text-sm text-muted-foreground">{exam.primaryClass.joinCode}</div>
+                        <div className="mt-1">
+                          {getClassStatusBadge(exam.classStatus)}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -365,21 +557,18 @@ const StudentExamsPage = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
-                        {exam.status === 'upcoming' && exam.canStart && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleStartExam(exam)}
-                            disabled={new Date() < new Date(exam.startDate + 'T' + exam.startTime)}
-                          >
-                            {new Date() < new Date(exam.startDate + 'T' + exam.startTime) ? 'Not Started' : 'Start Exam'}
+                        {exam.status === 'upcoming' && (
+                          <Button size="sm" variant="outline" disabled>
+                            Opens Soon
                           </Button>
                         )}
-                        {exam.status === 'active' && exam.canStart && (
+                        {exam.status === 'active' && (
                           <Button 
                             size="sm" 
                             onClick={() => handleStartExam(exam)}
+                            disabled={!exam.canStart}
                           >
-                            Continue Exam
+                            {exam.canStart ? 'Continue Exam' : 'Class Inactive'}
                           </Button>
                         )}
                         {exam.status === 'completed' && exam.submitted && (
@@ -427,7 +616,15 @@ const StudentExamsPage = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedExam && (
-            <ExamDetails exam={selectedExam} />
+            <ExamDetails
+              exam={selectedExam}
+              getStatusBadge={getStatusBadge}
+              getClassStatusBadge={getClassStatusBadge}
+              formatDate={formatDate}
+              formatTimeRange={formatTimeRange}
+              formatDurationHM={formatDurationHM}
+              formatMarks={formatMarks}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -436,57 +633,87 @@ const StudentExamsPage = () => {
 };
 
 // Exam Details Component
-const ExamDetails = ({ exam }) => {
+const ExamDetails = ({ exam, getStatusBadge, getClassStatusBadge, formatDate, formatTimeRange, formatDurationHM, formatMarks }) => {
+  const otherClasses = exam.classes.slice(1);
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-muted-foreground">Title</label>
           <p className="text-lg font-medium">{exam.title}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {getStatusBadge(exam.status)}
+            {getClassStatusBadge(exam.classStatus)}
+          </div>
         </div>
         <div>
-          <label className="text-sm font-medium text-muted-foreground">Class</label>
-          <p className="text-lg font-medium">{exam.class.name} ({exam.class.code})</p>
+          <label className="text-sm font-medium text-muted-foreground">Primary Class</label>
+          <p className="text-lg font-medium flex items-center gap-2">
+            {exam.primaryClass.name} ({exam.primaryClass.joinCode})
+          </p>
         </div>
       </div>
+
+      {otherClasses.length > 0 && (
+        <div>
+          <label className="text-sm font-medium text-muted-foreground">Additional Classes</label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {otherClasses.map(cls => (
+              <Badge key={cls.joinCode} variant="outline">
+                {cls.name} ({cls.joinCode})
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="text-sm font-medium text-muted-foreground">Instructions</label>
-        <p className="mt-1">{exam.instructions}</p>
+        <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
+          {exam.instructions || 'No instructions provided.'}
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-sm font-medium text-muted-foreground">Schedule</label>
           <p className="mt-1">
-            {new Date(exam.startDate).toLocaleDateString()}<br/>
-            {exam.startTime} - {exam.endTime}
+            {formatDate(exam.startDate)}
+            <br />
+            {formatTimeRange(exam.startTime, exam.endTime)}
           </p>
         </div>
         <div>
           <label className="text-sm font-medium text-muted-foreground">Duration</label>
           <p className="mt-1">
-            {Math.floor(exam.duration / 60)}h {exam.duration % 60}m<br/>
-            {exam.totalMarks} marks
+            {formatDurationHM(exam.duration)}
+            <br />
+            {formatMarks(exam.totalMarks)}
           </p>
         </div>
         <div>
           <label className="text-sm font-medium text-muted-foreground">Questions</label>
           <p className="mt-1">
-            {exam.questions} questions<br/>
-            {exam.totalMarks} total marks
+            {exam.questions} questions
+            <br />
+            {exam.totalMarks ? `${exam.totalMarks} total marks` : '—'}
           </p>
         </div>
       </div>
 
       <div>
         <label className="text-sm font-medium text-muted-foreground">Allowed Programming Languages</label>
-        <div className="flex gap-2 mt-2">
-          {exam.allowedLanguages.map(lang => (
-            <Badge key={lang} variant="outline" className="capitalize">
-              {lang}
-            </Badge>
-          ))}
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {exam.allowedLanguages.length > 0 ? (
+            exam.allowedLanguages.map(lang => (
+              <Badge key={lang.id} variant="outline">
+                {lang.name}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm text-muted-foreground">Not specified</span>
+          )}
         </div>
       </div>
 
@@ -496,50 +723,41 @@ const ExamDetails = ({ exam }) => {
           <div className="mt-2 space-y-2">
             <div className="flex justify-between items-center p-2 border rounded">
               <span>Started:</span>
-              <span>{new Date(exam.startTime).toLocaleString()}</span>
+              <span>{exam.startDateTime ? exam.startDateTime.toLocaleString() : '—'}</span>
             </div>
             <div className="flex justify-between items-center p-2 border rounded">
-              <span>Submitted:</span>
-              <span>{new Date(exam.endTime).toLocaleString()}</span>
+              <span>Completed:</span>
+              <span>{exam.endDateTime ? exam.endDateTime.toLocaleString() : '—'}</span>
             </div>
             <div className="flex justify-between items-center p-2 border rounded">
               <span>Score:</span>
-              <span className="font-medium">{exam.score}/{exam.totalMarks} ({(exam.score / exam.totalMarks * 100).toFixed(1)}%)</span>
+              <span className="font-medium">
+                {exam.score}/{exam.totalMarks} ({exam.totalMarks ? ((exam.score / exam.totalMarks) * 100).toFixed(1) : '0'}%)
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      <div className="pt-4">
-        {exam.status === 'upcoming' && exam.canStart && (
-          <Button 
+      <div className="pt-4 space-y-2">
+        {exam.status === 'active' && (
+          <Button
             className="w-full"
             onClick={() => {
-              // Navigate to exam taking interface
-              window.location.href = `/student/exams/${exam.id}/take`;
+              if (exam.canStart) {
+                window.location.href = `/student/exams/${exam.id}/take`;
+              }
             }}
-            disabled={new Date() < new Date(exam.startDate + 'T' + exam.startTime)}
+            disabled={!exam.canStart}
           >
-            {new Date() < new Date(exam.startDate + 'T' + exam.startTime) ? 'Exam Not Started Yet' : 'Start Exam Now'}
-          </Button>
-        )}
-        {exam.status === 'active' && exam.canStart && (
-          <Button 
-            className="w-full"
-            onClick={() => {
-              // Navigate to exam taking interface
-              window.location.href = `/student/exams/${exam.id}/take`;
-            }}
-          >
-            Continue Exam
+            {exam.canStart ? 'Continue Exam' : 'Class Inactive'}
           </Button>
         )}
         {exam.status === 'completed' && exam.submitted && (
-          <Button 
+          <Button
             className="w-full"
             variant="outline"
             onClick={() => {
-              // Navigate to results page
               window.location.href = `/student/exams/${exam.id}/results`;
             }}
           >
