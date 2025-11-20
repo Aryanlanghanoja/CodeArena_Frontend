@@ -16,6 +16,7 @@ import { indentWithTab } from '@codemirror/commands';
 import { autocompletion } from '@codemirror/autocomplete';
 import useRestrictClipboardOutsideEditor from '../hooks/useRestrictClipboardOutsideEditor';
 import { buildCompletionExtensions } from '../lib/codeEditorCompletions';
+import { buildEnhancedEditorExtensions } from '../lib/enhancedEditorConfig';
 import useProctoring from '../hooks/useProctoring';
 import proctorService from '../services/proctorService';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1562,22 +1563,17 @@ const ProblemSolvingPage = ({ problem, onBackToProblemList, backButtonText = 'Ba
               value={code}
               onChange={(value) => setCode(value)}
               extensions={[
-                languages.find(l => l.value === selectedLanguage)?.extension,
-
-                ...noClipboard,].filter(Boolean)}
-              theme={isDarkMode ? oneDark : undefined}
+                ...buildEnhancedEditorExtensions(selectedLanguage, isDarkMode, {
+                  enableFormat: true,
+                  enableSnippets: true,
+                  enableSearch: true,
+                  enableMultipleCursors: true,
+                  enableBracketColorization: true,
+                  restrictClipboard: false,
+                }),
+                ...noClipboard,
+              ]}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
-              basicSetup={{
-                lineNumbers: true,
-                foldGutter: true,
-                dropCursor: false,
-                allowMultipleSelections: false,
-                indentOnInput: true,
-                bracketMatching: true,
-                closeBrackets: true,
-                autocompletion: true,
-                highlightSelectionMatches: false,
-              }}
             />
           </div>
         </div>
