@@ -17,6 +17,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { buildEnhancedEditorExtensions } from '../../lib/enhancedEditorConfig';
 
 const TakeCodingExamPage = () => {
   const { examId } = useParams();
@@ -258,10 +259,17 @@ const TakeCodingExamPage = () => {
             <CodeMirror
               value={code}
               onChange={setCode}
-              extensions={[languages.find(l => l.value === selectedLanguage)?.extension].filter(Boolean)}
-              theme={isDarkMode ? oneDark : undefined}
+              extensions={[
+                ...buildEnhancedEditorExtensions(selectedLanguage, isDarkMode, {
+                  enableFormat: true,
+                  enableSnippets: true,
+                  enableSearch: true,
+                  enableMultipleCursors: true,
+                  enableBracketColorization: true,
+                  restrictClipboard: false,
+                }),
+              ]}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
-              basicSetup={{ lineNumbers: true, foldGutter: true, bracketMatching: true, closeBrackets: true, autocompletion: true }}
             />
           </div>
 

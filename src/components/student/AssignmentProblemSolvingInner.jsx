@@ -16,6 +16,7 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { indentWithTab } from '@codemirror/commands';
 import useRestrictClipboardOutsideEditor from '../../hooks/useRestrictClipboardOutsideEditor';
 import { buildCompletionExtensions } from '../../lib/codeEditorCompletions';
+import { buildEnhancedEditorExtensions } from '../../lib/enhancedEditorConfig';
 import { useTheme } from '../../contexts/ThemeContext';
 import questionsService from '../../services/questionsService';
 import assignmentRunsService from '../../services/assignmentRunsService';
@@ -904,22 +905,17 @@ const AssignmentProblemSolvingInner = ({ problem, assignmentId, classId, onBack,
               value={code}
               onChange={(value) => setCode(value)}
               extensions={[
-                languages.find(l => l.value === selectedLanguage)?.extension,
-
-                ...noClipboard,].filter(Boolean)}
-              theme={isDarkMode ? oneDark : undefined}
+                ...buildEnhancedEditorExtensions(selectedLanguage, isDarkMode, {
+                  enableFormat: true,
+                  enableSnippets: true,
+                  enableSearch: true,
+                  enableMultipleCursors: true,
+                  enableBracketColorization: true,
+                  restrictClipboard: false,
+                }),
+                ...noClipboard,
+              ]}
               style={{ height: '100%', width: '100%', fontSize: '14px' }}
-              basicSetup={{ 
-                lineNumbers: true, 
-                foldGutter: true, 
-                dropCursor: false, 
-                allowMultipleSelections: false, 
-                indentOnInput: true, 
-                bracketMatching: true, 
-                closeBrackets: true, 
-                autocompletion: true, 
-                highlightSelectionMatches: false 
-              }}
             />
           </div>
         </div>
