@@ -2,7 +2,8 @@ import api from './api';
 
 class Judge0Service {
     constructor() {
-        this.API_BASE_URL = '/api';
+        // this.API_BASE_URL = '/api';
+        this.API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     }
 
     /**
